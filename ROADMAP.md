@@ -8,11 +8,6 @@
 
 ### Foundation
 
-- Database migrations
-  - `webhook_outbox_subscriptions` table (url, secret, events, active, description, metadata)
-  - `webhook_outbox_deliveries` table (subscription ref, event, payload, status, response_code, response_body, attempts, delivered_at, next_retry_at)
-  - Indexes on deliveries (status, event, subscription+created_at)
-  - JSON column compatibility across PostgreSQL (`jsonb`), MySQL, and SQLite
 - `RailsWebhookOutbox::Subscription` model
   - Validations (url presence/format, secret presence, events presence)
   - Auto-generate secret on create
