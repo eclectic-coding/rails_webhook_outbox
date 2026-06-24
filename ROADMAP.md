@@ -8,15 +8,6 @@
 
 ### Foundation
 
-- `RailsWebhookOutbox::Configuration` — configuration DSL with defaults
-  - `RailsWebhookOutbox.configure` block API
-  - `events` — registered event names
-  - `signing_algorithm` — default `:sha256`
-  - `signing_header` — default `"X-Webhook-Signature"`
-  - `max_retries` — default `8`
-  - `retry_backoff` — default `:exponential`
-  - `request_timeout` — default `5` (seconds)
-  - `delivery_job_queue` — default `:webhooks`
 - Database migrations
   - `webhook_outbox_subscriptions` table (url, secret, events, active, description, metadata)
   - `webhook_outbox_deliveries` table (subscription ref, event, payload, status, response_code, response_body, attempts, delivered_at, next_retry_at)
