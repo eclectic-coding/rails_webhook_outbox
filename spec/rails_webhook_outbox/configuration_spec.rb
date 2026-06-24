@@ -1,0 +1,98 @@
+require "rails_helper"
+
+RSpec.describe RailsWebhookOutbox::Configuration do
+  subject(:config) { described_class.new }
+
+  describe "defaults" do
+    it "sets events to an empty array" do
+      expect(config.events).to eq([])
+    end
+
+    it "sets signing_algorithm to :sha256" do
+      expect(config.signing_algorithm).to eq(:sha256)
+    end
+
+    it "sets signing_header to X-Webhook-Signature" do
+      expect(config.signing_header).to eq("X-Webhook-Signature")
+    end
+
+    it "sets max_retries to 8" do
+      expect(config.max_retries).to eq(8)
+    end
+
+    it "sets retry_backoff to :exponential" do
+      expect(config.retry_backoff).to eq(:exponential)
+    end
+
+    it "sets request_timeout to 5" do
+      expect(config.request_timeout).to eq(5)
+    end
+
+    it "sets delivery_job_queue to :webhooks" do
+      expect(config.delivery_job_queue).to eq(:webhooks)
+    end
+  end
+
+  describe "#signing_algorithm=" do
+    it "accepts valid algorithms" do
+      %i[sha256 sha384 sha512].each do |algo|
+        config.signing_algorithm = algo
+        expect(config.signing_algorithm).to eq(algo)
+      end
+    end
+
+    it "converts strings to symbols" do
+      config.signing_algorithm = "sha512"
+      expect(config.signing_algorithm).to eq(:sha512)
+    end
+
+    it "raises on invalid algorithm" do
+      expect { config.signing_algorithm = :md5 }.to raise_error(ArgumentError, /Unknown signing algorithm: md5/)
+    end
+  end
+
+  describe "#retry_backoff=" do
+    it "accepts valid strategies" do
+      %i[exponential linear].each do |strategy|
+        config.retry_backoff = strategy
+        expect(config.retry_backoff).to eq(strategy)
+      end
+    end
+
+    it "converts strings to symbols" do
+      config.retry_backoff = "linear"
+      expect(config.retry_backoff).to eq(:linear)
+    end
+
+    it "raises on invalid strategy" do
+      expect { config.retry_backoff = :constant }.to raise_error(ArgumentError, /Unknown retry backoff strategy: constant/)
+    end
+  end
+
+  describe "writable attributes" do
+    it "allows setting events" do
+      config.events = %w[order.created order.updated]
+      expect(config.events).to eq(%w[order.created order.updated])
+    end
+
+    it "allows setting signing_header" do
+      config.signing_header = "X-Custom-Signature"
+      expect(config.signing_header).to eq("X-Custom-Signature")
+    end
+
+    it "allows setting max_retries" do
+      config.max_retries = 5
+      expect(config.max_retries).to eq(5)
+    end
+
+    it "allows setting request_timeout" do
+      config.request_timeout = 10
+      expect(config.request_timeout).to eq(10)
+    end
+
+    it "allows setting delivery_job_queue" do
+      config.delivery_job_queue = :critical
+      expect(config.delivery_job_queue).to eq(:critical)
+    end
+  end
+end
