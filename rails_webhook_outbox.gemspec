@@ -3,8 +3,8 @@ require_relative "lib/rails_webhook_outbox/version"
 Gem::Specification.new do |spec|
   spec.name        = "rails_webhook_outbox"
   spec.version     = RailsWebhookOutbox::VERSION
-  spec.authors     = [ "Chuck Smith" ]
-  spec.email       = [ "eclectic-coding@users.noreply.github.com" ]
+  spec.authors     = ["Chuck Smith"]
+  spec.email       = ["eclectic-coding@users.noreply.github.com"]
   spec.homepage    = "TODO"
   spec.summary     = "TODO: Summary of RailsWebhookOutbox."
   spec.description = "TODO: Description of RailsWebhookOutbox."
