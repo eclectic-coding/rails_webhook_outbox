@@ -14,6 +14,7 @@ A Rails engine for sending outgoing webhooks with HMAC signing, ActiveJob-based 
 
 - [Installation](#installation)
 - [Configuration](#configuration)
+- [Subscriptions](#subscriptions)
 - [Usage](#usage)
 - [Manual Dispatch](#manual-dispatch)
 - [Development](#development)
@@ -59,6 +60,34 @@ RailsWebhookOutbox.configure do |config|
   config.request_timeout    = 5
   config.delivery_job_queue = :webhooks
 end
+```
+
+## Subscriptions
+
+A `RailsWebhookOutbox::Subscription` represents an endpoint that receives webhook events.
+
+```ruby
+sub = RailsWebhookOutbox::Subscription.create!(
+  url: "https://example.com/webhooks",
+  events: ["order.created", "order.updated"]
+)
+
+sub.secret          # => "a3f9..." (auto-generated 64-char hex string)
+sub.active?         # => true (default)
+sub.subscribes_to?("order.created")  # => true
+sub.subscribes_to?("payment.failed") # => false
+```
+
+Use the `active` scope to find enabled subscriptions:
+
+```ruby
+RailsWebhookOutbox::Subscription.active
+```
+
+Disable a subscription by setting `active: false`:
+
+```ruby
+sub.update!(active: false)
 ```
 
 ## Usage
