@@ -8,11 +8,6 @@
 
 ### Foundation
 
-- `RailsWebhookOutbox::Subscription` model
-  - Validations (url presence/format, secret presence, events presence)
-  - Auto-generate secret on create
-  - `active` scope
-  - `subscribes_to?(event)` query method
 - `RailsWebhookOutbox::Delivery` model
   - Status enum (pending, delivered, failed)
   - Belongs-to subscription association
