@@ -16,6 +16,7 @@ A Rails engine for sending outgoing webhooks with HMAC signing, ActiveJob-based 
 - [Configuration](#configuration)
 - [Subscriptions](#subscriptions)
 - [Deliveries](#deliveries)
+- [HTTP Request Format](#http-request-format)
 - [HMAC Signing](#hmac-signing)
 - [Usage](#usage)
 - [Manual Dispatch](#manual-dispatch)
@@ -115,6 +116,27 @@ RailsWebhookOutbox::Delivery.retryable   # pending — awaiting delivery or retr
 RailsWebhookOutbox::Delivery.delivered   # successfully delivered
 RailsWebhookOutbox::Delivery.failed      # exhausted all retries
 ```
+
+## HTTP Request Format
+
+Each webhook delivery is an HTTP POST to the subscription URL with the following headers and body:
+
+```
+POST https://example.com/webhooks
+Content-Type: application/json
+X-Webhook-Signature: sha256=a1b2c3d4...
+X-Webhook-Event: order.created
+X-Webhook-Delivery: 550e8400-e29b-41d4-a716-446655440000
+X-Webhook-Timestamp: 1719100800
+
+{
+  "event": "order.created",
+  "delivered_at": "2026-06-26T10:00:00Z",
+  "data": { "id": 42, "total": "99.00" }
+}
+```
+
+Non-2xx responses raise `RailsWebhookOutbox::DeliveryError`, which carries `response_code` and `response_body` for logging and retry decisions.
 
 ## HMAC Signing
 
