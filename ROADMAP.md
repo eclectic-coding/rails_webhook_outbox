@@ -8,17 +8,20 @@
 
 ### ActiveRecord Integration
 
-- `RailsWebhookOutbox::Dispatchable` concern
-  - `dispatches_webhook "event.name", on: :create` — after_create callback
-  - `dispatches_webhook "event.name", on: :update` — after_update callback
-  - `if:` conditional lambda support
-  - `webhook_payload` override method
-  - Creates delivery records for all matching active subscriptions
-  - Enqueues `DeliveryJob` for each delivery
 - `RailsWebhookOutbox.dispatch("event", payload)` — manual dispatch API
   - Finds all active subscriptions for the event
   - Creates delivery records
   - Enqueues delivery jobs
+
+### Dummy App
+
+- Add `solid_queue` gem and configure as the development queue adapter
+- `RailsWebhookOutbox` initializer with documented defaults
+- `Order` model with migration (title, total, status, cancelled_at) as the test host-app model
+- `OrdersController` — API-only `create` and `update` actions
+- Routes: `resources :orders`
+- Seeds: sample subscriptions and orders
+- Wire `Order` to `Dispatchable` (`dispatches_webhook` on create/update/cancel)
 
 ### Generator and Release Prep
 

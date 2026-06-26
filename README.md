@@ -209,7 +209,7 @@ RailsWebhookOutbox::Signature.header_value(payload, secret)
 
 ## Usage
 
-Include the `Dispatchable` concern in your models:
+Include `RailsWebhookOutbox::Dispatchable` in any ActiveRecord model to automatically dispatch webhooks on lifecycle events:
 
 ```ruby
 class Order < ApplicationRecord
@@ -222,7 +222,13 @@ class Order < ApplicationRecord
 end
 ```
 
-Customize the payload by defining a `webhook_payload` method:
+When a callback fires, the concern finds every active `Subscription` that includes that event, creates a `Delivery` record for each one, and enqueues a `DeliveryJob`. No other wiring is required.
+
+The `if:` option accepts a lambda that is evaluated in the context of the model instance, so any attribute or method is available.
+
+**Payload**
+
+By default the full record is sent as the webhook payload via `as_json`. Override `webhook_payload` to control exactly what is sent:
 
 ```ruby
 class Order < ApplicationRecord
