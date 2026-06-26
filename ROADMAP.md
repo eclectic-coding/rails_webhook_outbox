@@ -6,15 +6,6 @@
 
 ## 0.1.0 — MVP
 
-### Async Delivery
-
-- `RailsWebhookOutbox::DeliveryJob` — ActiveJob subclass
-  - `queue_as` from configuration
-  - `retry_on RailsWebhookOutbox::DeliveryError` with exponential backoff
-  - Update delivery record on success (status, response_code, response_body, delivered_at, attempts)
-  - Update delivery record on failure (response_code, response_body, attempts, status)
-  - Mark as `failed` after max retries exhausted
-
 ### ActiveRecord Integration
 
 - `RailsWebhookOutbox::Dispatchable` concern

@@ -16,6 +16,7 @@ A Rails engine for sending outgoing webhooks with HMAC signing, ActiveJob-based 
 - [Configuration](#configuration)
 - [Subscriptions](#subscriptions)
 - [Deliveries](#deliveries)
+- [Async Delivery](#async-delivery)
 - [HTTP Request Format](#http-request-format)
 - [HMAC Signing](#hmac-signing)
 - [Usage](#usage)
@@ -65,6 +66,8 @@ RailsWebhookOutbox.configure do |config|
 end
 ```
 
+[Back to top](#table-of-contents)
+
 ## Subscriptions
 
 A `RailsWebhookOutbox::Subscription` represents an endpoint that receives webhook events.
@@ -93,6 +96,8 @@ Disable a subscription by setting `active: false`:
 sub.update!(active: false)
 ```
 
+[Back to top](#table-of-contents)
+
 ## Deliveries
 
 A `RailsWebhookOutbox::Delivery` records each attempt to send a webhook event to a subscription endpoint.
@@ -117,6 +122,39 @@ RailsWebhookOutbox::Delivery.delivered   # successfully delivered
 RailsWebhookOutbox::Delivery.failed      # exhausted all retries
 ```
 
+[Back to top](#table-of-contents)
+
+## Async Delivery
+
+`RailsWebhookOutbox::DeliveryJob` handles HTTP dispatch for each `Delivery` record. It is an `ActiveJob` subclass, so it works with any queue backend (Sidekiq, Solid Queue, GoodJob, etc.).
+
+Configure the queue and retry behaviour in the initializer:
+
+```ruby
+RailsWebhookOutbox.configure do |config|
+  config.delivery_job_queue = :webhooks  # default
+  config.max_retries        = 8          # default
+end
+```
+
+The job uses polynomial (exponentially-growing) wait intervals between retries. On each failed attempt it updates the delivery record before re-raising so progress is always persisted:
+
+| Execution | Outcome | Delivery status |
+|-----------|---------|-----------------|
+| 1–(n-1) | non-2xx response | `pending` — will retry |
+| n (`max_retries`) | non-2xx response | `failed` — no further retry |
+| any | 2xx response | `delivered` |
+
+Every attempt (success or failure) increments `delivery.attempts` and stores the `response_code` and `response_body`. Successful deliveries also set `delivered_at`.
+
+Enqueue a delivery manually:
+
+```ruby
+RailsWebhookOutbox::DeliveryJob.perform_later(delivery)
+```
+
+[Back to top](#table-of-contents)
+
 ## HTTP Request Format
 
 Each webhook delivery is an HTTP POST to the subscription URL with the following headers and body:
@@ -137,6 +175,8 @@ X-Webhook-Timestamp: 1719100800
 ```
 
 Non-2xx responses raise `RailsWebhookOutbox::DeliveryError`, which carries `response_code` and `response_body` for logging and retry decisions.
+
+[Back to top](#table-of-contents)
 
 ## HMAC Signing
 
@@ -164,6 +204,8 @@ RailsWebhookOutbox::Signature.sign(payload, secret, :sha256)
 RailsWebhookOutbox::Signature.header_value(payload, secret)
 # => "sha256=a1b2c3d4..."
 ```
+
+[Back to top](#table-of-contents)
 
 ## Usage
 
@@ -194,6 +236,8 @@ class Order < ApplicationRecord
 end
 ```
 
+[Back to top](#table-of-contents)
+
 ## Manual Dispatch
 
 Dispatch webhooks outside of model callbacks:
@@ -206,6 +250,8 @@ RailsWebhookOutbox.dispatch("payment.completed", {
 })
 ```
 
+[Back to top](#table-of-contents)
+
 ## Development
 
 ```bash
@@ -214,10 +260,16 @@ $ bundle exec rspec
 $ bin/rubocop
 ```
 
+[Back to top](#table-of-contents)
+
 ## Contributing
 
 Bug reports and pull requests are welcome on [GitHub](https://github.com/eclectic-coding/rails_webhook_outbox).
 
+[Back to top](#table-of-contents)
+
 ## License
 
 The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
+
+[Back to top](#table-of-contents)
