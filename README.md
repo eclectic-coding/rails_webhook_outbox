@@ -16,6 +16,7 @@ A Rails engine for sending outgoing webhooks with HMAC signing, ActiveJob-based 
 - [Configuration](#configuration)
 - [Subscriptions](#subscriptions)
 - [Deliveries](#deliveries)
+- [HMAC Signing](#hmac-signing)
 - [Usage](#usage)
 - [Manual Dispatch](#manual-dispatch)
 - [Development](#development)
@@ -113,6 +114,33 @@ Filter deliveries by status:
 RailsWebhookOutbox::Delivery.retryable   # pending — awaiting delivery or retry
 RailsWebhookOutbox::Delivery.delivered   # successfully delivered
 RailsWebhookOutbox::Delivery.failed      # exhausted all retries
+```
+
+## HMAC Signing
+
+Every outgoing request includes an `X-Webhook-Signature` header (configurable) containing an HMAC digest of the request body:
+
+```
+X-Webhook-Signature: sha256=a1b2c3d4...
+```
+
+Subscribers can verify the signature:
+
+```ruby
+expected = RailsWebhookOutbox::Signature.header_value(raw_body, subscription.secret)
+Rack::Utils.secure_compare(expected, request.headers["X-Webhook-Signature"])
+```
+
+You can also call the primitives directly:
+
+```ruby
+# Produce a hex digest with an explicit algorithm
+RailsWebhookOutbox::Signature.sign(payload, secret, :sha256)
+# => "a1b2c3d4..."
+
+# Produce the full header value using the configured algorithm
+RailsWebhookOutbox::Signature.header_value(payload, secret)
+# => "sha256=a1b2c3d4..."
 ```
 
 ## Usage

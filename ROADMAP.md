@@ -8,9 +8,6 @@
 
 ### Signing and HTTP Delivery
 
-- `RailsWebhookOutbox::Signature` module
-  - `.sign(payload, secret, algorithm)` — HMAC hex digest
-  - `.header_value(payload, secret)` — formatted `"sha256=abcdef..."` string
 - `RailsWebhookOutbox::Sender` service
   - HTTP POST with `Net::HTTP`
   - Request headers: Content-Type, X-Webhook-Signature, X-Webhook-Event, X-Webhook-Delivery, X-Webhook-Timestamp
