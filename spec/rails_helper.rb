@@ -1,4 +1,5 @@
 require "spec_helper"
+require "webmock/rspec"
 ENV["RAILS_ENV"] ||= "test"
 require File.expand_path("../dummy/config/environment", __FILE__)
 abort("The Rails environment is running in production mode!") if Rails.env.production?

@@ -6,15 +6,6 @@
 
 ## 0.1.0 — MVP
 
-### Signing and HTTP Delivery
-
-- `RailsWebhookOutbox::Sender` service
-  - HTTP POST with `Net::HTTP`
-  - Request headers: Content-Type, X-Webhook-Signature, X-Webhook-Event, X-Webhook-Delivery, X-Webhook-Timestamp
-  - JSON body with `event`, `delivered_at`, and `data` envelope
-  - Configurable request timeout
-  - `RailsWebhookOutbox::DeliveryError` for non-2xx responses
-
 ### Async Delivery
 
 - `RailsWebhookOutbox::DeliveryJob` — ActiveJob subclass
