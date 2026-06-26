@@ -1,5 +1,6 @@
 require "rails_webhook_outbox/version"
 require "rails_webhook_outbox/configuration"
+require "rails_webhook_outbox/signature"
 require "rails_webhook_outbox/engine"
 
 module RailsWebhookOutbox
