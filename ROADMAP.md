@@ -6,14 +6,6 @@
 
 ## 0.1.0 — MVP
 
-### Foundation
-
-- `RailsWebhookOutbox::Delivery` model
-  - Status enum (pending, delivered, failed)
-  - Belongs-to subscription association
-  - Validations (event presence, payload presence)
-  - `retryable` / `failed` / `delivered` scopes
-
 ### Signing and HTTP Delivery
 
 - `RailsWebhookOutbox::Signature` module

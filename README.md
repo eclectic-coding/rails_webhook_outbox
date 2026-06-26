@@ -15,6 +15,7 @@ A Rails engine for sending outgoing webhooks with HMAC signing, ActiveJob-based 
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [Subscriptions](#subscriptions)
+- [Deliveries](#deliveries)
 - [Usage](#usage)
 - [Manual Dispatch](#manual-dispatch)
 - [Development](#development)
@@ -88,6 +89,30 @@ Disable a subscription by setting `active: false`:
 
 ```ruby
 sub.update!(active: false)
+```
+
+## Deliveries
+
+A `RailsWebhookOutbox::Delivery` records each attempt to send a webhook event to a subscription endpoint.
+
+```ruby
+delivery = RailsWebhookOutbox::Delivery.create!(
+  subscription: subscription,
+  event: "order.created",
+  payload: { id: 42, total: "99.00" }
+)
+
+delivery.pending?    # => true (default)
+delivery.delivered!
+delivery.delivered?  # => true
+```
+
+Filter deliveries by status:
+
+```ruby
+RailsWebhookOutbox::Delivery.retryable   # pending — awaiting delivery or retry
+RailsWebhookOutbox::Delivery.delivered   # successfully delivered
+RailsWebhookOutbox::Delivery.failed      # exhausted all retries
 ```
 
 ## Usage
