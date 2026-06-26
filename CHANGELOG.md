@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `RailsWebhookOutbox::Dispatchable` concern — `dispatches_webhook(event, on:)` class macro registering `after_create`/`after_update` callbacks; `if:` conditional lambda support; `webhook_payload` override method (defaults to `as_json`); creates `Delivery` records for all matching active subscriptions and enqueues `DeliveryJob` for each
+- `RailsWebhookOutbox::DeliveryJob` — ActiveJob subclass with `queue_as` from configuration, `retry_on DeliveryError` with polynomial backoff, delivery record updates on success (status, response_code, response_body, delivered_at, attempts) and failure (response_code, response_body, attempts, status), and automatic `failed` marking after `max_retries` exhausted
 - `RailsWebhookOutbox::Sender` service — HTTP POST via `Net::HTTP` with Content-Type, X-Webhook-Signature, X-Webhook-Event, X-Webhook-Delivery, and X-Webhook-Timestamp headers; JSON body envelope with `event`, `delivered_at`, and `data`; configurable request timeout; raises `DeliveryError` on non-2xx responses
 - `RailsWebhookOutbox::DeliveryError` — `StandardError` subclass exposing `response_code` and `response_body` from failed HTTP responses
 - `RailsWebhookOutbox::Signature` module — `.sign(payload, secret, algorithm)` HMAC hex digest and `.header_value(payload, secret)` returning a formatted `"sha256=..."` string using the configured algorithm

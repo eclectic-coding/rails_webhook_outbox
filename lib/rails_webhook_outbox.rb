@@ -3,6 +3,7 @@ require "rails_webhook_outbox/configuration"
 require "rails_webhook_outbox/signature"
 require "rails_webhook_outbox/delivery_error"
 require "rails_webhook_outbox/sender"
+require "rails_webhook_outbox/dispatchable"
 require "rails_webhook_outbox/engine"
 
 module RailsWebhookOutbox
