@@ -1,6 +1,8 @@
 require "rails_helper"
 
 RSpec.describe RailsWebhookOutbox do
+  include ActiveJob::TestHelper
+
   after { described_class.reset_configuration! }
 
   describe ".configuration" do
@@ -36,6 +38,66 @@ RSpec.describe RailsWebhookOutbox do
       described_class.configure { |c| c.max_retries = 3 }
       described_class.reset_configuration!
       expect(described_class.config.max_retries).to eq(8)
+    end
+  end
+
+  describe ".dispatch" do
+    let(:payload) { { id: 1, total: "99.00" } }
+
+    let!(:subscription) do
+      RailsWebhookOutbox::Subscription.create!(
+        url: "https://example.com/hooks",
+        events: ["order.created"],
+        active: true
+      )
+    end
+
+    it "creates a Delivery for each matching active subscription" do
+      expect { described_class.dispatch("order.created", payload) }
+        .to change(RailsWebhookOutbox::Delivery, :count).by(1)
+    end
+
+    it "enqueues a DeliveryJob for each matching active subscription" do
+      expect { described_class.dispatch("order.created", payload) }
+        .to have_enqueued_job(RailsWebhookOutbox::DeliveryJob)
+    end
+
+    it "stores the event and payload on the delivery" do
+      described_class.dispatch("order.created", payload)
+      delivery = RailsWebhookOutbox::Delivery.last
+      expect(delivery.event).to eq("order.created")
+      expect(delivery.payload).to eq({ "id" => 1, "total" => "99.00" })
+    end
+
+    it "dispatches to multiple matching subscriptions" do
+      RailsWebhookOutbox::Subscription.create!(
+        url: "https://second.example.com/hooks",
+        events: ["order.created"],
+        active: true
+      )
+      expect { described_class.dispatch("order.created", payload) }
+        .to have_enqueued_job(RailsWebhookOutbox::DeliveryJob).twice
+    end
+
+    it "skips subscriptions that do not subscribe to the event" do
+      RailsWebhookOutbox::Subscription.create!(
+        url: "https://other.example.com/hooks",
+        events: ["payment.completed"],
+        active: true
+      )
+      expect { described_class.dispatch("order.created", payload) }
+        .to change(RailsWebhookOutbox::Delivery, :count).by(1)
+    end
+
+    it "skips inactive subscriptions" do
+      subscription.update!(active: false)
+      expect { described_class.dispatch("order.created", payload) }
+        .not_to have_enqueued_job(RailsWebhookOutbox::DeliveryJob)
+    end
+
+    it "does nothing when no subscriptions match" do
+      expect { described_class.dispatch("unknown.event", payload) }
+        .not_to have_enqueued_job(RailsWebhookOutbox::DeliveryJob)
     end
   end
 end
