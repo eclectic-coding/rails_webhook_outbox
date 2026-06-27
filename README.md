@@ -246,7 +246,7 @@ end
 
 ## Manual Dispatch
 
-Dispatch webhooks outside of model callbacks:
+Dispatch a webhook event outside of model callbacks using `RailsWebhookOutbox.dispatch`:
 
 ```ruby
 RailsWebhookOutbox.dispatch("payment.completed", {
@@ -255,6 +255,10 @@ RailsWebhookOutbox.dispatch("payment.completed", {
   currency: payment.currency
 })
 ```
+
+`dispatch` finds every active `Subscription` that includes the given event, creates a `Delivery` record for each one, and enqueues a `DeliveryJob`. Subscriptions that are inactive or do not subscribe to the event are skipped silently.
+
+This is the same delivery pipeline used by `Dispatchable` callbacks, so retries, HMAC signing, and delivery logging all apply.
 
 [Back to top](#table-of-contents)
 
