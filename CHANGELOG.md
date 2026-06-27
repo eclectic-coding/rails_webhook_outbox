@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `RailsWebhookOutbox::Subscription` model — URL/format and events presence validations, auto-generated HMAC secret on create, `active` scope, and `subscribes_to?(event)` query method
 - `RailsWebhookOutbox::Configuration` — configuration DSL with defaults for events, signing algorithm, signing header, max retries, retry backoff, request timeout, and delivery job queue
 - `RailsWebhookOutbox.configure` block API, `.config` / `.configuration` accessors, and `.reset_configuration!`
+- `RailsWebhookOutbox.dispatch(event, payload)` — finds all active subscriptions that subscribe to the event, creates a `Delivery` record for each, and enqueues a `DeliveryJob`; skips inactive subscriptions and non-matching events
 - Validation for `signing_algorithm` (sha256, sha384, sha512) and `retry_backoff` (exponential, linear)
 - Database migrations for `webhook_outbox_subscriptions` and `webhook_outbox_deliveries` tables with indexes on status, event, and subscription+created_at
 

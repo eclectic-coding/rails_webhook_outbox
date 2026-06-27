@@ -6,13 +6,6 @@
 
 ## 0.1.0 — MVP
 
-### ActiveRecord Integration
-
-- `RailsWebhookOutbox.dispatch("event", payload)` — manual dispatch API
-  - Finds all active subscriptions for the event
-  - Creates delivery records
-  - Enqueues delivery jobs
-
 ### Dummy App
 
 - Add `solid_queue` gem and configure as the development queue adapter
