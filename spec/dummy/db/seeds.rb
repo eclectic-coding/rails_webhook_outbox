@@ -4,6 +4,6 @@ RailsWebhookOutbox::Subscription.find_or_create_by!(url: "http://localhost:4000/
   s.description = "Local dev webhook receiver"
 end
 
-Order.create!(title: "Widget Pack", total: 49.99, status: "pending")
-Order.create!(title: "Gadget Bundle", total: 129.00, status: "confirmed")
-Order.create!(title: "Cancelled Order", total: 19.99, status: "cancelled", cancelled_at: Time.current)
+Order.find_or_create_by!(title: "Widget Pack") { |o| o.total = 49.99; o.status = "pending" }
+Order.find_or_create_by!(title: "Gadget Bundle") { |o| o.total = 129.00; o.status = "confirmed" }
+Order.find_or_create_by!(title: "Cancelled Order") { |o| o.total = 19.99; o.status = "cancelled"; o.cancelled_at = Time.current }
