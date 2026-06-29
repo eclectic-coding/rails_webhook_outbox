@@ -29,6 +29,11 @@ module RailsWebhookOutbox
       payload = webhook_payload
       RailsWebhookOutbox.validate_payload_size!(payload)
 
+      if RailsWebhookOutbox.config.test_mode
+        RailsWebhookOutbox::Testing.deliveries << { event: event.to_s, payload: payload }
+        return
+      end
+
       Subscription.active.each do |subscription|
         next unless subscription.subscribes_to?(event)
 

@@ -103,6 +103,11 @@ RSpec.describe RailsWebhookOutbox::DeliveryJob do
         expect { described_class.perform_now(delivery) }
           .to have_enqueued_job(described_class)
       end
+
+      it "sets next_retry_at to a future time" do
+        described_class.perform_now(delivery) rescue RailsWebhookOutbox::DeliveryError
+        expect(delivery.reload.next_retry_at).to be > Time.current
+      end
     end
 
     context "on the final failure (max_retries exhausted)" do
@@ -128,6 +133,32 @@ RSpec.describe RailsWebhookOutbox::DeliveryJob do
 
       it "does not re-raise" do
         expect { described_class.perform_now(delivery) }.not_to raise_error
+      end
+
+      it "clears next_retry_at" do
+        delivery.update!(next_retry_at: 1.hour.from_now)
+        described_class.perform_now(delivery)
+        expect(delivery.reload.next_retry_at).to be_nil
+      end
+    end
+
+    context "in test_mode" do
+      before { RailsWebhookOutbox.configure { |c| c.test_mode = true } }
+
+      it "marks the delivery as delivered without making an HTTP call" do
+        expect(RailsWebhookOutbox::Sender).not_to receive(:call)
+        described_class.perform_now(delivery)
+        expect(delivery.reload).to be_delivered
+      end
+
+      it "increments attempts" do
+        described_class.perform_now(delivery)
+        expect(delivery.reload.attempts).to eq(1)
+      end
+
+      it "sets delivered_at" do
+        described_class.perform_now(delivery)
+        expect(delivery.reload.delivered_at).to be_within(2.seconds).of(Time.current)
       end
     end
 

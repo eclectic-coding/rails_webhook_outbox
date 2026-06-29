@@ -116,6 +116,22 @@ RSpec.describe RailsWebhookOutbox::Dispatchable do
     end
   end
 
+  describe "test mode" do
+    before do
+      RailsWebhookOutbox.configure { |c| c.test_mode = true }
+      RailsWebhookOutbox::Testing.clear_deliveries!
+      model_class.dispatches_webhook "order.created", on: :create
+    end
+
+    after { RailsWebhookOutbox.reset_configuration! }
+
+    it "records the event in Testing.deliveries instead of creating a Delivery" do
+      expect { model_class.create!(title: "Test") }
+        .not_to change(RailsWebhookOutbox::Delivery, :count)
+      expect(RailsWebhookOutbox::Testing.deliveries.map { |d| d[:event] }).to include("order.created")
+    end
+  end
+
   describe "payload size validation" do
     before do
       RailsWebhookOutbox.configure { |c| c.max_payload_size = 10 }

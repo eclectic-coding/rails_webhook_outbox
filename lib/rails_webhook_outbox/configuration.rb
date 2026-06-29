@@ -5,7 +5,7 @@ module RailsWebhookOutbox
 
     attr_accessor :events, :signing_algorithm, :signing_header,
                   :max_retries, :retry_backoff, :request_timeout,
-                  :delivery_job_queue, :max_payload_size
+                  :delivery_job_queue, :max_payload_size, :test_mode
 
     def initialize
       @events = []
@@ -16,6 +16,7 @@ module RailsWebhookOutbox
       @request_timeout = 5
       @delivery_job_queue = :webhooks
       @max_payload_size = 65_536
+      @test_mode = false
     end
 
     def signing_algorithm=(value)
