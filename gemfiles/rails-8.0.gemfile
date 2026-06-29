@@ -1,0 +1,24 @@
+source "https://rubygems.org"
+
+gem "rails", "~> 8.0.0"
+
+gemspec path: ".."
+
+gem "rubocop-rails-omakase", require: false
+
+group :development do
+  gem "bundler-audit"
+end
+
+group :development, :test do
+  gem "puma"
+  gem "sqlite3"
+  gem "propshaft"
+end
+
+group :test do
+  gem "rspec-rails"
+  gem "webmock"
+  gem "simplecov", require: false
+  gem "simplecov_json_formatter", require: false
+end
