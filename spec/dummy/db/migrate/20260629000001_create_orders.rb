@@ -1,4 +1,4 @@
-class CreateOrders < ActiveRecord::Migration[8.1]
+class CreateOrders < ActiveRecord::Migration[7.2]
   def change
     create_table :orders do |t|
       t.string :title, null: false

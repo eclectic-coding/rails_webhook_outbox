@@ -4,6 +4,8 @@ module RailsWebhookOutbox
 
     URL_FORMAT = /\Ahttps?:\/\/.+/i
 
+    attribute :active, :boolean, default: true
+
     before_validation :generate_secret, on: :create
 
     validates :url, presence: true, format: { with: URL_FORMAT, message: "must be a valid HTTP or HTTPS URL" }
