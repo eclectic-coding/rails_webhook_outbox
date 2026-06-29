@@ -6,9 +6,18 @@ module RailsWebhookOutbox
 
     enum :status, { pending: 0, delivered: 1, failed: 2 }
 
+    before_validation :generate_idempotency_key, on: :create
+
     validates :event, presence: true
     validates :payload, presence: true
+    validates :idempotency_key, presence: true
 
     scope :retryable, -> { pending }
+
+    private
+
+    def generate_idempotency_key
+      self.idempotency_key ||= SecureRandom.uuid
+    end
   end
 end
