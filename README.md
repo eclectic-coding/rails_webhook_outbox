@@ -22,6 +22,7 @@ A Rails engine for sending outgoing webhooks with HMAC signing, ActiveJob-based 
 - [Usage](#usage)
 - [Manual Dispatch](#manual-dispatch)
 - [Development](#development)
+  - [Dummy App](#dummy-app)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -268,6 +269,68 @@ This is the same delivery pipeline used by `Dispatchable` callbacks, so retries,
 $ bundle install
 $ bundle exec rspec
 $ bin/rubocop
+```
+
+### Dummy App
+
+The gem includes a full dummy Rails app at `spec/dummy/` for end-to-end testing in a running server. It has an `Order` model wired to `Dispatchable`, an `OrdersController`, and seed data.
+
+**Setup**
+
+From the repo root:
+
+```bash
+$ cd spec/dummy
+$ bin/setup          # installs deps, runs db:prepare, then starts the server
+```
+
+Or set up without starting the server:
+
+```bash
+$ bin/rails db:prepare
+$ bin/rails db:seed
+```
+
+**Start the server**
+
+`bin/dev` runs the web server and solid_queue worker together via foreman:
+
+```bash
+$ bin/dev
+```
+
+The API is available at `http://localhost:3000`.
+
+**Try it with curl**
+
+Create an order (fires `order.created`):
+
+```bash
+curl -X POST http://localhost:3000/orders \
+  -H "Content-Type: application/json" \
+  -d '{"order": {"title": "Widget Pack", "total": "49.99", "status": "pending"}}'
+```
+
+Update an order (fires `order.updated`):
+
+```bash
+curl -X PATCH http://localhost:3000/orders/1 \
+  -H "Content-Type: application/json" \
+  -d '{"order": {"status": "confirmed"}}'
+```
+
+Cancel an order (fires `order.cancelled`):
+
+```bash
+curl -X PATCH http://localhost:3000/orders/1 \
+  -H "Content-Type: application/json" \
+  -d '{"order": {"status": "cancelled", "cancelled_at": "2026-06-29T12:00:00Z"}}'
+```
+
+The seed data creates a subscription pointing to `http://localhost:4000/webhooks`. Point it at any local receiver (e.g. a `webhook.site` URL or a local listener) by updating the subscription record directly:
+
+```ruby
+RailsWebhookOutbox::Subscription.first.update!(url: "https://webhook.site/your-id")
 ```
 
 [Back to top](#table-of-contents)
