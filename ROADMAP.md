@@ -6,7 +6,6 @@
 
 ## 0.2.0 — Hardening
 
-- Populate `next_retry_at` on retryable failures
 - Test mode (`RailsWebhookOutbox.config.test_mode = true`) to suppress HTTP calls
 - In-memory delivery capture for assertions
 - RSpec matchers — `expect { ... }.to dispatch_webhook("order.created")`
