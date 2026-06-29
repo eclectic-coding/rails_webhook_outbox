@@ -116,6 +116,30 @@ RSpec.describe RailsWebhookOutbox::Dispatchable do
     end
   end
 
+  describe "event validation" do
+    before do
+      RailsWebhookOutbox.configure { |c| c.events = %w[order.created] }
+      model_class.dispatches_webhook "order.created", on: :create
+    end
+
+    after { RailsWebhookOutbox.reset_configuration! }
+
+    it "raises ArgumentError when the event is not registered" do
+      unregistered_class = Class.new(ActiveRecord::Base) do
+        self.table_name = "orders"
+        include RailsWebhookOutbox::Dispatchable
+        dispatches_webhook "payment.failed", on: :create
+      end
+
+      expect { unregistered_class.create!(title: "Test") }
+        .to raise_error(ArgumentError, /Unknown event "payment\.failed"/)
+    end
+
+    it "does not raise for a registered event" do
+      expect { model_class.create!(title: "Test") }.not_to raise_error
+    end
+  end
+
   describe "#webhook_payload" do
     before { model_class.dispatches_webhook "order.created", on: :create }
 
