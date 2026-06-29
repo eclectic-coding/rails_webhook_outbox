@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- README with full usage documentation covering installation, configuration, subscriptions, deliveries, async delivery, HTTP format, HMAC signing, `Dispatchable`, manual dispatch, and dummy app setup
+- `rails generate rails_webhook_outbox:install` generator
+  - Copies `create_webhook_outbox_subscriptions` and `create_webhook_outbox_deliveries` migrations to the host app with correct timestamps and the host app's Rails migration version
+  - Creates `config/initializers/rails_webhook_outbox.rb` with all configuration options and inline documentation
 - Dummy app built out for end-to-end development and manual testing
   - `Order` model wired to `Dispatchable` — fires `order.created`, `order.updated`, and `order.cancelled` webhooks via `dispatches_webhook` callbacks
   - `OrdersController` — API-only `create` and `update` actions with `resources :orders` routes

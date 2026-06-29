@@ -8,7 +8,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Codecov](https://codecov.io/gh/eclectic-coding/rails_webhook_outbox/graph/badge.svg)](https://codecov.io/gh/eclectic-coding/rails_webhook_outbox)
 
-A Rails engine for sending outgoing webhooks with HMAC signing, ActiveJob-based retry, delivery logging, and a mountable dashboard.
+A Rails engine for sending outgoing webhooks with HMAC signing, ActiveJob-based retry, and delivery logging.
 
 ## Table of Contents
 
@@ -138,7 +138,7 @@ RailsWebhookOutbox.configure do |config|
 end
 ```
 
-The job uses polynomial (exponentially-growing) wait intervals between retries. On each failed attempt it updates the delivery record before re-raising so progress is always persisted:
+The job uses polynomial backoff (`:polynomially_longer`) between retries — wait time grows with each attempt. On each failed attempt it updates the delivery record before re-raising so progress is always persisted:
 
 | Execution | Outcome | Delivery status |
 |-----------|---------|-----------------|
@@ -287,7 +287,8 @@ $ bin/setup          # installs deps, runs db:prepare, then starts the server
 Or set up without starting the server:
 
 ```bash
-$ bin/rails db:prepare
+$ bin/rails db:create db:migrate
+$ bin/rails db:schema:load:queue
 $ bin/rails db:seed
 ```
 
