@@ -4,6 +4,11 @@ module RailsWebhookOutbox
     retry_on RailsWebhookOutbox::DeliveryError, wait: :polynomially_longer, attempts: :unlimited
 
     def perform(delivery)
+      if RailsWebhookOutbox.config.test_mode
+        delivery.update!(status: :delivered, attempts: delivery.attempts + 1, delivered_at: Time.current)
+        return
+      end
+
       response = Sender.call(delivery)
       delivery.update!(
         status: :delivered,

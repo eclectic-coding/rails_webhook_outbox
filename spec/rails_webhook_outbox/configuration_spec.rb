@@ -31,6 +31,14 @@ RSpec.describe RailsWebhookOutbox::Configuration do
     it "sets delivery_job_queue to :webhooks" do
       expect(config.delivery_job_queue).to eq(:webhooks)
     end
+
+    it "sets max_payload_size to 65_536" do
+      expect(config.max_payload_size).to eq(65_536)
+    end
+
+    it "sets test_mode to false" do
+      expect(config.test_mode).to be false
+    end
   end
 
   describe "#signing_algorithm=" do

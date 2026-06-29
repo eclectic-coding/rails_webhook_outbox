@@ -3,6 +3,7 @@ require "rails_webhook_outbox/configuration"
 require "rails_webhook_outbox/signature"
 require "rails_webhook_outbox/delivery_error"
 require "rails_webhook_outbox/payload_size_error"
+require "rails_webhook_outbox/testing"
 require "rails_webhook_outbox/sender"
 require "rails_webhook_outbox/dispatchable"
 require "rails_webhook_outbox/engine"
@@ -42,6 +43,12 @@ module RailsWebhookOutbox
     def dispatch(event, payload)
       validate_event!(event)
       validate_payload_size!(payload)
+
+      if config.test_mode
+        Testing.deliveries << { event: event.to_s, payload: payload }
+        return
+      end
+
       Subscription.active.each do |subscription|
         next unless subscription.subscribes_to?(event)
 
