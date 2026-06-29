@@ -151,7 +151,7 @@ The job uses polynomial backoff (`:polynomially_longer`) between retries — wai
 | n (`max_retries`) | non-2xx response | `failed` — no further retry |
 | any | 2xx response | `delivered` |
 
-Every attempt (success or failure) increments `delivery.attempts` and stores the `response_code` and `response_body`. Successful deliveries also set `delivered_at`.
+Every attempt (success or failure) increments `delivery.attempts` and stores the `response_code` and `response_body`. Successful deliveries also set `delivered_at`. Retryable failures set `next_retry_at` to the estimated time of the next attempt (based on the polynomial formula `executions⁴ + 2` seconds); it is cleared to `nil` once all retries are exhausted.
 
 Enqueue a delivery manually:
 

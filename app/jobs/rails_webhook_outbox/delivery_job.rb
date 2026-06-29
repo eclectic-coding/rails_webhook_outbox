@@ -14,13 +14,15 @@ module RailsWebhookOutbox
       )
     rescue DeliveryError => e
       max_retries = RailsWebhookOutbox.config.max_retries
+      final = executions >= max_retries
       delivery.update!(
         response_code: e.response_code,
         response_body: e.response_body&.truncate(1000),
         attempts: delivery.attempts + 1,
-        status: executions >= max_retries ? :failed : :pending
+        status: final ? :failed : :pending,
+        next_retry_at: final ? nil : Time.current + ((executions**4) + 2).seconds
       )
-      raise if executions < max_retries
+      raise unless final
     end
   end
 end
