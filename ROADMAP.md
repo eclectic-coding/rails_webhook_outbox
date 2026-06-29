@@ -4,9 +4,6 @@
 > Completed items are moved to CHANGELOG.md and removed from this file.
 > Shipped sections are removed automatically by `bin/release`.
 
-## 0.2.0 — Hardening
-
----
 
 ## 0.3.0 — Observability & Ops
 
