@@ -8,9 +8,6 @@
 
 ### Generator and Release Prep
 
-- `rails generate rails_webhook_outbox:install` generator
-  - Copies migrations to host app
-  - Creates initializer template with documented defaults
 - README with usage documentation
 - 100% RSpec line + branch coverage
 
