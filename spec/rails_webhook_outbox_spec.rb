@@ -67,6 +67,36 @@ RSpec.describe RailsWebhookOutbox do
     end
   end
 
+  describe ".validate_payload_size!" do
+    let(:small_payload) { { id: 1 } }
+    let(:large_payload) { { data: "x" * 70_000 } }
+
+    it "does not raise for a payload within the default limit" do
+      expect { described_class.validate_payload_size!(small_payload) }.not_to raise_error
+    end
+
+    it "raises PayloadSizeError when the payload exceeds the limit" do
+      expect { described_class.validate_payload_size!(large_payload) }
+        .to raise_error(RailsWebhookOutbox::PayloadSizeError, /too large/)
+    end
+
+    it "includes size and limit in the error message" do
+      described_class.configure { |c| c.max_payload_size = 10 }
+      expect { described_class.validate_payload_size!({ data: "hello world" }) }
+        .to raise_error(RailsWebhookOutbox::PayloadSizeError, /bytes exceeds the 10-byte limit/)
+    end
+
+    it "skips validation when max_payload_size is nil" do
+      described_class.configure { |c| c.max_payload_size = nil }
+      expect { described_class.validate_payload_size!(large_payload) }.not_to raise_error
+    end
+
+    it "skips validation when max_payload_size is 0" do
+      described_class.configure { |c| c.max_payload_size = 0 }
+      expect { described_class.validate_payload_size!(large_payload) }.not_to raise_error
+    end
+  end
+
   describe ".dispatch" do
     let(:payload) { { id: 1, total: "99.00" } }
 
@@ -137,6 +167,15 @@ RSpec.describe RailsWebhookOutbox do
       it "dispatches a registered event without error" do
         expect { described_class.dispatch("order.created", payload) }
           .to have_enqueued_job(RailsWebhookOutbox::DeliveryJob)
+      end
+    end
+
+    context "when the payload exceeds max_payload_size" do
+      before { described_class.configure { |c| c.max_payload_size = 10 } }
+
+      it "raises PayloadSizeError before enqueuing" do
+        expect { described_class.dispatch("order.created", { data: "this is too large" }) }
+          .to raise_error(RailsWebhookOutbox::PayloadSizeError)
       end
     end
   end
