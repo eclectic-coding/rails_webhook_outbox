@@ -64,10 +64,13 @@ RailsWebhookOutbox.configure do |config|
   config.retry_backoff      = :exponential
   config.request_timeout    = 5
   config.delivery_job_queue = :webhooks
+  config.max_payload_size   = 65_536  # bytes; set to nil or 0 to disable
 end
 ```
 
 When `config.events` is set, both `dispatch` and `Dispatchable` callbacks will raise `ArgumentError` if the event name is not in the list. Leave `config.events` empty to skip validation entirely.
+
+If the JSON-serialised payload exceeds `config.max_payload_size` bytes, `RailsWebhookOutbox::PayloadSizeError` is raised before any `Delivery` record is created or job enqueued. The default limit is 64 KB (`65_536` bytes).
 
 [Back to top](#table-of-contents)
 
