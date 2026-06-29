@@ -12,6 +12,7 @@ gem "rubocop-rails-omakase", require: false
 group :development do
   gem "rubocop-rails-omakase", require: false
   gem "bundler-audit"
+  gem "solid_queue"
 end
 
 group :development, :test do
