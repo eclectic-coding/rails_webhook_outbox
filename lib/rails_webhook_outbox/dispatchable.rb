@@ -24,6 +24,8 @@ module RailsWebhookOutbox
     def _dispatch_webhook(event, condition)
       return if condition && !instance_exec(&condition)
 
+      RailsWebhookOutbox.validate_event!(event)
+
       payload = webhook_payload
 
       Subscription.active.each do |subscription|
