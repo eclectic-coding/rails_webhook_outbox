@@ -21,6 +21,7 @@ A Rails engine for sending outgoing webhooks with HMAC signing, ActiveJob-based 
 - [HMAC Signing](#hmac-signing)
 - [Usage](#usage)
 - [Manual Dispatch](#manual-dispatch)
+- [Testing](#testing)
 - [Development](#development)
   - [Dummy App](#dummy-app)
 - [Contributing](#contributing)
@@ -274,6 +275,39 @@ RailsWebhookOutbox.validate_event!("payment.completed")
 ```
 
 This is the same delivery pipeline used by `Dispatchable` callbacks, so retries, HMAC signing, and delivery logging all apply.
+
+[Back to top](#table-of-contents)
+
+## Testing
+
+Enable test mode in your `rails_helper.rb` to suppress HTTP calls and DB writes during specs:
+
+```ruby
+require "rails_webhook_outbox/rspec_matchers"
+
+RailsWebhookOutbox.configure { |c| c.test_mode = true }
+
+RSpec.configure do |config|
+  config.before { RailsWebhookOutbox::Testing.clear_deliveries! }
+end
+```
+
+When `test_mode` is `true`, dispatched events are captured in memory instead of creating `Delivery` records or enqueuing jobs. Use the `dispatch_webhook` matcher to assert on them:
+
+```ruby
+expect { order.save! }.to dispatch_webhook("order.created")
+expect { order.save! }.to dispatch_webhook("order.created").with_payload({ id: order.id })
+expect { order.save! }.not_to dispatch_webhook("order.updated")
+```
+
+Inspect captured events directly if needed:
+
+```ruby
+RailsWebhookOutbox::Testing.deliveries
+# => [{ event: "order.created", payload: { "id" => 1, ... } }]
+```
+
+`DeliveryJob` also respects `test_mode` — if a job is enqueued and performed directly in a test, it marks the delivery as `delivered` without making an HTTP call.
 
 [Back to top](#table-of-contents)
 
