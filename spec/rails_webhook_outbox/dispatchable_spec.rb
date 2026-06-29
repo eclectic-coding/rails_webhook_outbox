@@ -116,6 +116,20 @@ RSpec.describe RailsWebhookOutbox::Dispatchable do
     end
   end
 
+  describe "payload size validation" do
+    before do
+      RailsWebhookOutbox.configure { |c| c.max_payload_size = 10 }
+      model_class.dispatches_webhook "order.created", on: :create
+    end
+
+    after { RailsWebhookOutbox.reset_configuration! }
+
+    it "raises PayloadSizeError when the payload exceeds the limit" do
+      expect { model_class.create!(title: "A title that will exceed the ten byte limit") }
+        .to raise_error(RailsWebhookOutbox::PayloadSizeError)
+    end
+  end
+
   describe "event validation" do
     before do
       RailsWebhookOutbox.configure { |c| c.events = %w[order.created] }
