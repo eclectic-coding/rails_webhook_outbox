@@ -10,6 +10,7 @@ AllCops:
     - "README.md"
     - "spec/**/*"
     - "vendor/**/*"
+    - "lib/generators/**/templates/**/*"
 
 Metrics/BlockLength:
   Exclude:
