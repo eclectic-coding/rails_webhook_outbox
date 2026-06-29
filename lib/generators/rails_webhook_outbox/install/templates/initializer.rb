@@ -19,4 +19,8 @@ RailsWebhookOutbox.configure do |config|
 
   # ActiveJob queue for delivery jobs.
   config.delivery_job_queue = :webhooks
+
+  # Maximum payload size in bytes. Raises PayloadSizeError before enqueuing if exceeded.
+  # Set to nil or 0 to disable.
+  config.max_payload_size = 65_536
 end

@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Event validation — `RailsWebhookOutbox.validate_event!(event)` raises `ArgumentError` when the event is not in `config.events`; called automatically by `dispatch` and `Dispatchable` callbacks. Validation is skipped when `config.events` is empty for backward compatibility.
 - Idempotency key — `Delivery` records now store an auto-generated UUID in `idempotency_key`; the `X-Webhook-Delivery` header uses this stored value across all retry attempts so subscribers can deduplicate incoming webhooks.
+- Payload size limit — `config.max_payload_size` (default 65 536 bytes) raises `RailsWebhookOutbox::PayloadSizeError` before enqueuing if the JSON-serialised payload exceeds the limit. Set to `nil` or `0` to disable.
 
 ## [0.1.0] - 2026-06-29
 
