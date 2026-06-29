@@ -4,15 +4,6 @@
 > Completed items are moved to CHANGELOG.md and removed from this file.
 > Shipped sections are removed automatically by `bin/release`.
 
-## 0.1.0 — MVP
-
-### Generator and Release Prep
-
-- README with usage documentation
-- 100% RSpec line + branch coverage
-
----
-
 ## 0.2.0 — Hardening
 
 - Event validation — raise on unregistered event names
