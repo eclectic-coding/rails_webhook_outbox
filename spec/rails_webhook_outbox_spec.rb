@@ -41,6 +41,32 @@ RSpec.describe RailsWebhookOutbox do
     end
   end
 
+  describe ".validate_event!" do
+    context "when no events are configured" do
+      it "does not raise for any event" do
+        expect { described_class.validate_event!("anything.goes") }.not_to raise_error
+      end
+    end
+
+    context "when events are configured" do
+      before { described_class.configure { |c| c.events = %w[order.created order.updated] } }
+
+      it "does not raise for a registered event" do
+        expect { described_class.validate_event!("order.created") }.not_to raise_error
+      end
+
+      it "raises ArgumentError for an unregistered event" do
+        expect { described_class.validate_event!("payment.failed") }
+          .to raise_error(ArgumentError, /Unknown event "payment\.failed"/)
+      end
+
+      it "includes the registered events in the error message" do
+        expect { described_class.validate_event!("payment.failed") }
+          .to raise_error(ArgumentError, /order\.created, order\.updated/)
+      end
+    end
+  end
+
   describe ".dispatch" do
     let(:payload) { { id: 1, total: "99.00" } }
 
@@ -98,6 +124,20 @@ RSpec.describe RailsWebhookOutbox do
     it "does nothing when no subscriptions match" do
       expect { described_class.dispatch("unknown.event", payload) }
         .not_to have_enqueued_job(RailsWebhookOutbox::DeliveryJob)
+    end
+
+    context "when events are configured" do
+      before { described_class.configure { |c| c.events = %w[order.created] } }
+
+      it "raises ArgumentError for an unregistered event" do
+        expect { described_class.dispatch("payment.failed", payload) }
+          .to raise_error(ArgumentError, /Unknown event/)
+      end
+
+      it "dispatches a registered event without error" do
+        expect { described_class.dispatch("order.created", payload) }
+          .to have_enqueued_job(RailsWebhookOutbox::DeliveryJob)
+      end
     end
   end
 end
