@@ -1,10 +1,14 @@
 require "rails_helper"
 
 RSpec.describe RailsWebhookOutbox::Sender do
-  let(:url)          { "https://example.com/webhooks" }
-  let(:secret)       { "test-secret" }
-  let(:subscription) { double("Subscription", url: url, secret: secret) }
-  let(:delivery)     { double("Delivery", subscription: subscription, event: "order.created", payload: { "id" => 1 }) }
+  let(:url)             { "https://example.com/webhooks" }
+  let(:secret)          { "test-secret" }
+  let(:idempotency_key) { "550e8400-e29b-41d4-a716-446655440000" }
+  let(:subscription)    { double("Subscription", url: url, secret: secret) }
+  let(:delivery) do
+    double("Delivery", subscription: subscription, event: "order.created",
+      payload: { "id" => 1 }, idempotency_key: idempotency_key)
+  end
 
   after { RailsWebhookOutbox.reset_configuration! }
 
@@ -29,10 +33,10 @@ RSpec.describe RailsWebhookOutbox::Sender do
           .with(headers: { "X-Webhook-Event" => "order.created" })
       end
 
-      it "sets X-Webhook-Delivery to a UUID" do
+      it "sets X-Webhook-Delivery to the delivery's idempotency key" do
         described_class.call(delivery)
         expect(WebMock).to have_requested(:post, url)
-          .with(headers: { "X-Webhook-Delivery" => /\A[0-9a-f-]{36}\z/ })
+          .with(headers: { "X-Webhook-Delivery" => idempotency_key })
       end
 
       it "sets X-Webhook-Timestamp to a Unix timestamp" do

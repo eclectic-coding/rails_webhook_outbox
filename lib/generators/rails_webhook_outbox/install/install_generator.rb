@@ -16,11 +16,11 @@ module RailsWebhookOutbox
 
       def copy_migrations
         migration_template(
-          "create_webhook_outbox_subscriptions.rb",
+          "create_webhook_outbox_subscriptions.rb.tt",
           "db/migrate/create_webhook_outbox_subscriptions.rb"
         )
         migration_template(
-          "create_webhook_outbox_deliveries.rb",
+          "create_webhook_outbox_deliveries.rb.tt",
           "db/migrate/create_webhook_outbox_deliveries.rb"
         )
       end

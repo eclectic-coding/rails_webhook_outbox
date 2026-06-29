@@ -177,6 +177,8 @@ X-Webhook-Timestamp: 1719100800
 }
 ```
 
+`X-Webhook-Delivery` is the delivery's `idempotency_key` — a UUID generated once when the `Delivery` record is created and reused on every retry attempt. Subscribers can use this value to deduplicate incoming webhooks.
+
 Non-2xx responses raise `RailsWebhookOutbox::DeliveryError`, which carries `response_code` and `response_body` for logging and retry decisions.
 
 [Back to top](#table-of-contents)
