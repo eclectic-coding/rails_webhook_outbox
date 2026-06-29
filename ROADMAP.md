@@ -6,16 +6,6 @@
 
 ## 0.1.0 — MVP
 
-### Dummy App
-
-- Add `solid_queue` gem and configure as the development queue adapter
-- `RailsWebhookOutbox` initializer with documented defaults
-- `Order` model with migration (title, total, status, cancelled_at) as the test host-app model
-- `OrdersController` — API-only `create` and `update` actions
-- Routes: `resources :orders`
-- Seeds: sample subscriptions and orders
-- Wire `Order` to `Dispatchable` (`dispatches_webhook` on create/update/cancel)
-
 ### Generator and Release Prep
 
 - `rails generate rails_webhook_outbox:install` generator
