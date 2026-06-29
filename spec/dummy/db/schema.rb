@@ -25,6 +25,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_29_000001) do
     t.datetime "created_at", null: false
     t.datetime "delivered_at"
     t.string "event", null: false
+    t.string "idempotency_key"
     t.datetime "next_retry_at"
     t.json "payload", null: false
     t.text "response_body"
@@ -33,6 +34,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_29_000001) do
     t.integer "subscription_id", null: false
     t.datetime "updated_at", null: false
     t.index ["event"], name: "index_webhook_outbox_deliveries_on_event"
+    t.index ["idempotency_key"], name: "index_webhook_outbox_deliveries_on_idempotency_key", unique: true
     t.index ["status"], name: "index_webhook_outbox_deliveries_on_status"
     t.index ["subscription_id", "created_at"], name: "idx_on_subscription_id_created_at_000c14e1f7"
     t.index ["subscription_id"], name: "index_webhook_outbox_deliveries_on_subscription_id"
