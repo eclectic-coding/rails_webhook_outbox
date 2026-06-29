@@ -22,7 +22,16 @@ module RailsWebhookOutbox
       @configuration = Configuration.new
     end
 
+    def validate_event!(event)
+      registered = config.events
+      return if registered.empty?
+      return if registered.include?(event.to_s)
+
+      raise ArgumentError, "Unknown event #{event.inspect}. Registered events: #{registered.join(", ")}"
+    end
+
     def dispatch(event, payload)
+      validate_event!(event)
       Subscription.active.each do |subscription|
         next unless subscription.subscribes_to?(event)
 
