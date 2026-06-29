@@ -142,6 +142,26 @@ RSpec.describe RailsWebhookOutbox::DeliveryJob do
       end
     end
 
+    context "in test_mode" do
+      before { RailsWebhookOutbox.configure { |c| c.test_mode = true } }
+
+      it "marks the delivery as delivered without making an HTTP call" do
+        expect(RailsWebhookOutbox::Sender).not_to receive(:call)
+        described_class.perform_now(delivery)
+        expect(delivery.reload).to be_delivered
+      end
+
+      it "increments attempts" do
+        described_class.perform_now(delivery)
+        expect(delivery.reload.attempts).to eq(1)
+      end
+
+      it "sets delivered_at" do
+        described_class.perform_now(delivery)
+        expect(delivery.reload.delivered_at).to be_within(2.seconds).of(Time.current)
+      end
+    end
+
     context "when response body is nil" do
       let(:nil_body_response) { instance_double(Net::HTTPResponse, code: "503", body: nil) }
       let(:nil_body_error)    { RailsWebhookOutbox::DeliveryError.new(nil_body_response) }
