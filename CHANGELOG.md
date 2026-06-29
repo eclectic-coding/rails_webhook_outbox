@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Event validation — `RailsWebhookOutbox.validate_event!(event)` raises `ArgumentError` when the event is not in `config.events`; called automatically by `dispatch` and `Dispatchable` callbacks. Validation is skipped when `config.events` is empty for backward compatibility.
+
 ## [0.1.0] - 2026-06-29
 
 ### Added

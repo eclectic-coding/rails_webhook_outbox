@@ -67,6 +67,8 @@ RailsWebhookOutbox.configure do |config|
 end
 ```
 
+When `config.events` is set, both `dispatch` and `Dispatchable` callbacks will raise `ArgumentError` if the event name is not in the list. Leave `config.events` empty to skip validation entirely.
+
 [Back to top](#table-of-contents)
 
 ## Subscriptions
@@ -257,7 +259,14 @@ RailsWebhookOutbox.dispatch("payment.completed", {
 })
 ```
 
-`dispatch` finds every active `Subscription` that includes the given event, creates a `Delivery` record for each one, and enqueues a `DeliveryJob`. Subscriptions that are inactive or do not subscribe to the event are skipped silently.
+`dispatch` validates the event name against `config.events` (if configured), then finds every active `Subscription` that includes the given event, creates a `Delivery` record for each one, and enqueues a `DeliveryJob`. Subscriptions that are inactive or do not subscribe to the event are skipped silently.
+
+You can also validate an event name directly without dispatching:
+
+```ruby
+RailsWebhookOutbox.validate_event!("payment.completed")
+# raises ArgumentError if the event is not in config.events
+```
 
 This is the same delivery pipeline used by `Dispatchable` callbacks, so retries, HMAC signing, and delivery logging all apply.
 
