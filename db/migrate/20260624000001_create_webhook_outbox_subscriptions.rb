@@ -1,4 +1,4 @@
-class CreateWebhookOutboxSubscriptions < ActiveRecord::Migration[8.1]
+class CreateWebhookOutboxSubscriptions < ActiveRecord::Migration[7.2]
   def change
     create_table :webhook_outbox_subscriptions do |t|
       t.string :url, null: false

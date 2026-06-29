@@ -1,4 +1,4 @@
-class CreateWebhookOutboxDeliveries < ActiveRecord::Migration[8.1]
+class CreateWebhookOutboxDeliveries < ActiveRecord::Migration[7.2]
   def change
     create_table :webhook_outbox_deliveries do |t|
       t.references :subscription, null: false, foreign_key: { to_table: :webhook_outbox_subscriptions }

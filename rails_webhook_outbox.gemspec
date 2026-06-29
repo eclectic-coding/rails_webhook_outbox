@@ -7,7 +7,7 @@ Gem::Specification.new do |spec|
   spec.email       = ["eclectic-coding@users.noreply.github.com"]
   spec.homepage    = "https://github.com/eclectic-coding/rails_webhook_outbox"
   spec.summary     = "Outgoing webhooks for Rails with HMAC signing and ActiveJob retry"
-  spec.description = "A Rails engine for sending outgoing webhooks with HMAC signing, ActiveJob-based retry, delivery logging, and a mountable dashboard."
+  spec.description = "A Rails engine for sending outgoing webhooks with HMAC signing, ActiveJob-based retry, and delivery logging."
   spec.license     = "MIT"
 
   spec.metadata["allowed_push_host"] = "https://rubygems.org"
@@ -19,5 +19,5 @@ Gem::Specification.new do |spec|
     Dir["{app,config,db,lib}/**/*", "MIT-LICENSE", "Rakefile", "README.md"]
   end
 
-  spec.add_dependency "rails", ">= 8.1.3"
+  spec.add_dependency "rails", ">= 7.2"
 end
