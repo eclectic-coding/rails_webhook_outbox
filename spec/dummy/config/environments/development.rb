@@ -4,6 +4,7 @@ Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
   config.active_job.queue_adapter = :solid_queue
+  config.solid_queue.connects_to = { database: { writing: :queue, reading: :queue } }
 
   # Make code changes take effect immediately without server restart.
   config.enable_reloading = true
