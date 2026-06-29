@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-29
+
 ### Added
 - Event validation — `RailsWebhookOutbox.validate_event!(event)` raises `ArgumentError` when the event is not in `config.events`; called automatically by `dispatch` and `Dispatchable` callbacks. Validation is skipped when `config.events` is empty for backward compatibility.
 - Idempotency key — `Delivery` records now store an auto-generated UUID in `idempotency_key`; the `X-Webhook-Delivery` header uses this stored value across all retry attempts so subscribers can deduplicate incoming webhooks.
@@ -48,5 +50,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - `spec/rails_helper.rb` — removed broken `require_relative '../config/environment'`; engine migration path now auto-appended and test DB auto-migrated
 
-[Unreleased]: https://github.com/eclectic-coding/rails_webhook_outbox/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/eclectic-coding/rails_webhook_outbox/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/eclectic-coding/rails_webhook_outbox/releases/tag/v0.2.0
 [0.1.0]: https://github.com/eclectic-coding/rails_webhook_outbox/releases/tag/v0.1.0
