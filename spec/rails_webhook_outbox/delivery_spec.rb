@@ -54,6 +54,27 @@ RSpec.describe RailsWebhookOutbox::Delivery do
     end
   end
 
+  describe "idempotency key" do
+    it "generates a UUID on create when none is provided" do
+      delivery.save!
+      expect(delivery.idempotency_key).to match(/\A[0-9a-f-]{36}\z/)
+    end
+
+    it "does not overwrite a manually set idempotency key" do
+      delivery.idempotency_key = "my-custom-key"
+      delivery.save!
+      expect(delivery.idempotency_key).to eq("my-custom-key")
+    end
+
+    it "is invalid without an idempotency key" do
+      delivery.idempotency_key = nil
+      delivery.save # trigger before_validation
+      delivery.idempotency_key = nil
+      expect(delivery).not_to be_valid
+      expect(delivery.errors[:idempotency_key]).to be_present
+    end
+  end
+
   describe "status enum" do
     it "defaults to pending" do
       delivery.save!
