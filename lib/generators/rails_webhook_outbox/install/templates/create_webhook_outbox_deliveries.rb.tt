@@ -8,6 +8,7 @@ class CreateWebhookOutboxDeliveries < ActiveRecord::Migration[<%= ActiveRecord::
       t.integer :response_code
       t.text :response_body
       t.integer :attempts, null: false, default: 0
+      t.string :idempotency_key
       t.datetime :delivered_at
       t.datetime :next_retry_at
       t.timestamps
