@@ -6,7 +6,6 @@
 
 ## 0.2.0 — Hardening
 
-- Event validation — raise on unregistered event names
 - Idempotency key (UUID) stored on Delivery record for subscriber deduplication
 - Configurable payload size limit
 - Populate `next_retry_at` on retryable failures
