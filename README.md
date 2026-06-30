@@ -17,6 +17,7 @@ A Rails engine for sending outgoing webhooks with HMAC signing, ActiveJob-based 
 - [Subscriptions](#subscriptions)
 - [Deliveries](#deliveries)
 - [Async Delivery](#async-delivery)
+- [Instrumentation](#instrumentation)
 - [HTTP Request Format](#http-request-format)
 - [HMAC Signing](#hmac-signing)
 - [Usage](#usage)
@@ -158,6 +159,40 @@ Enqueue a delivery manually:
 
 ```ruby
 RailsWebhookOutbox::DeliveryJob.perform_later(delivery)
+```
+
+[Back to top](#table-of-contents)
+
+## Instrumentation
+
+`DeliveryJob` publishes `ActiveSupport::Notifications` events you can subscribe to for logging, metrics, or alerting:
+
+| Event | When |
+|-------|------|
+| `webhook.delivered.rails_webhook_outbox` | Delivery succeeded (2xx response) |
+| `webhook.failed.rails_webhook_outbox` | All retries exhausted — permanent failure |
+
+Each event payload includes:
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `event` | String | Webhook event name, e.g. `"order.created"` |
+| `subscription_id` | Integer | ID of the `Subscription` record |
+| `delivery_id` | Integer | ID of the `Delivery` record |
+| `duration` | Integer | HTTP round-trip time in milliseconds |
+
+Subscribe in an initializer:
+
+```ruby
+ActiveSupport::Notifications.subscribe("webhook.delivered.rails_webhook_outbox") do |*args|
+  event = ActiveSupport::Notifications::Event.new(*args)
+  Rails.logger.info "[webhook] delivered #{event.payload[:event]} in #{event.payload[:duration]}ms"
+end
+
+ActiveSupport::Notifications.subscribe("webhook.failed.rails_webhook_outbox") do |*args|
+  event = ActiveSupport::Notifications::Event.new(*args)
+  Sentry.capture_message("Webhook permanently failed", extra: event.payload)
+end
 ```
 
 [Back to top](#table-of-contents)
