@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `ActiveSupport::Notifications` instrumentation — `DeliveryJob` publishes `webhook.delivered.rails_webhook_outbox` on successful delivery and `webhook.failed.rails_webhook_outbox` on permanent failure (all retries exhausted). Each event payload includes `event`, `subscription_id`, `delivery_id`, and `duration` (integer milliseconds). Non-final failures publish no notification.
+
 ## [0.2.0] - 2026-06-29
 
 ### Added
