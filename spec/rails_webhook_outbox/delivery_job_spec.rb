@@ -71,6 +71,32 @@ RSpec.describe RailsWebhookOutbox::DeliveryJob do
         described_class.perform_now(delivery)
         expect(delivery.reload.attempts).to eq(1)
       end
+
+      it "publishes webhook.delivered.rails_webhook_outbox" do
+        events = []
+        ActiveSupport::Notifications.subscribed(
+          ->(name, _start, _finish, _id, payload) { events << { name:, payload: } },
+          "webhook.delivered.rails_webhook_outbox"
+        ) { described_class.perform_now(delivery) }
+
+        expect(events.size).to eq(1)
+        expect(events.first[:payload]).to include(
+          event: delivery.event,
+          subscription_id: subscription.id,
+          delivery_id: delivery.id
+        )
+        expect(events.first[:payload][:duration]).to be_a(Integer)
+      end
+
+      it "does not publish webhook.failed.rails_webhook_outbox" do
+        events = []
+        ActiveSupport::Notifications.subscribed(
+          ->(_name, _start, _finish, _id, payload) { events << payload },
+          "webhook.failed.rails_webhook_outbox"
+        ) { described_class.perform_now(delivery) }
+
+        expect(events).to be_empty
+      end
     end
 
     context "on a non-final failure (below max_retries)" do
@@ -108,6 +134,25 @@ RSpec.describe RailsWebhookOutbox::DeliveryJob do
         described_class.perform_now(delivery) rescue RailsWebhookOutbox::DeliveryError
         expect(delivery.reload.next_retry_at).to be > Time.current
       end
+
+      it "does not publish any notification" do
+        delivered_events = []
+        failed_events = []
+        ActiveSupport::Notifications.subscribed(
+          ->(_name, _start, _finish, _id, payload) { delivered_events << payload },
+          "webhook.delivered.rails_webhook_outbox"
+        ) do
+          ActiveSupport::Notifications.subscribed(
+            ->(_name, _start, _finish, _id, payload) { failed_events << payload },
+            "webhook.failed.rails_webhook_outbox"
+          ) do
+            described_class.perform_now(delivery) rescue RailsWebhookOutbox::DeliveryError
+          end
+        end
+
+        expect(delivered_events).to be_empty
+        expect(failed_events).to be_empty
+      end
     end
 
     context "on the final failure (max_retries exhausted)" do
@@ -140,6 +185,32 @@ RSpec.describe RailsWebhookOutbox::DeliveryJob do
         described_class.perform_now(delivery)
         expect(delivery.reload.next_retry_at).to be_nil
       end
+
+      it "publishes webhook.failed.rails_webhook_outbox" do
+        events = []
+        ActiveSupport::Notifications.subscribed(
+          ->(name, _start, _finish, _id, payload) { events << { name:, payload: } },
+          "webhook.failed.rails_webhook_outbox"
+        ) { described_class.perform_now(delivery) }
+
+        expect(events.size).to eq(1)
+        expect(events.first[:payload]).to include(
+          event: delivery.event,
+          subscription_id: subscription.id,
+          delivery_id: delivery.id
+        )
+        expect(events.first[:payload][:duration]).to be_a(Integer)
+      end
+
+      it "does not publish webhook.delivered.rails_webhook_outbox" do
+        events = []
+        ActiveSupport::Notifications.subscribed(
+          ->(_name, _start, _finish, _id, payload) { events << payload },
+          "webhook.delivered.rails_webhook_outbox"
+        ) { described_class.perform_now(delivery) }
+
+        expect(events).to be_empty
+      end
     end
 
     context "in test_mode" do
@@ -159,6 +230,22 @@ RSpec.describe RailsWebhookOutbox::DeliveryJob do
       it "sets delivered_at" do
         described_class.perform_now(delivery)
         expect(delivery.reload.delivered_at).to be_within(2.seconds).of(Time.current)
+      end
+
+      it "publishes webhook.delivered.rails_webhook_outbox" do
+        events = []
+        ActiveSupport::Notifications.subscribed(
+          ->(name, _start, _finish, _id, payload) { events << { name:, payload: } },
+          "webhook.delivered.rails_webhook_outbox"
+        ) { described_class.perform_now(delivery) }
+
+        expect(events.size).to eq(1)
+        expect(events.first[:payload]).to include(
+          event: delivery.event,
+          subscription_id: subscription.id,
+          delivery_id: delivery.id,
+          duration: 0
+        )
       end
     end
 

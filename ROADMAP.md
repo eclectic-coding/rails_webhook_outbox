@@ -7,7 +7,6 @@
 
 ## 0.3.0 — Observability & Ops
 
-- `ActiveSupport::Notifications` instrumentation (`webhook.delivered`, `webhook.failed`)
 - Structured logging in Sender and DeliveryJob
 - Secret rotation with dual-secret grace period
 - Circuit breaker — auto-disable subscriptions after N consecutive failures

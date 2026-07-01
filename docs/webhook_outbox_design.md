@@ -152,6 +152,41 @@ class WebhookOutbox::DeliveryJob < ApplicationJob
 end
 ```
 
+## Instrumentation
+
+`DeliveryJob` publishes `ActiveSupport::Notifications` events at the end of each delivery attempt.
+
+| Event | When |
+|-------|------|
+| `webhook.delivered.rails_webhook_outbox` | HTTP call succeeded (2xx response) |
+| `webhook.failed.rails_webhook_outbox` | All retries exhausted — permanent failure |
+
+Non-final failures (retryable errors) publish no notification.
+
+**Payload keys** (same for both events):
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `event` | String | Webhook event name, e.g. `"order.created"` |
+| `subscription_id` | Integer | ID of the `Subscription` record |
+| `delivery_id` | Integer | ID of the `Delivery` record |
+| `duration` | Integer | Elapsed time in milliseconds for the HTTP attempt (0 in test_mode) |
+
+**Example subscriber:**
+
+```ruby
+ActiveSupport::Notifications.subscribe("webhook.delivered.rails_webhook_outbox") do |*args|
+  event = ActiveSupport::Notifications::Event.new(*args)
+  Rails.logger.info "[webhook] delivered #{event.payload[:event]} in #{event.payload[:duration]}ms"
+end
+
+ActiveSupport::Notifications.subscribe("webhook.failed.rails_webhook_outbox") do |*args|
+  event = ActiveSupport::Notifications::Event.new(*args)
+  Sentry.capture_message("Webhook permanently failed",
+    extra: event.payload.slice(:event, :subscription_id, :delivery_id))
+end
+```
+
 ## HMAC signing verification (for subscribers)
 
 ```ruby
