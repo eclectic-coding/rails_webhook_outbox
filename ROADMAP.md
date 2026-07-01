@@ -7,7 +7,6 @@
 
 ## 0.3.0 — Observability & Ops
 
-- Structured logging in Sender and DeliveryJob
 - Secret rotation with dual-secret grace period
 - Circuit breaker — auto-disable subscriptions after N consecutive failures
 - Rake tasks (`webhook_outbox:retry_failed`, `webhook_outbox:list_subscriptions`, `webhook_outbox:cleanup[days]`)

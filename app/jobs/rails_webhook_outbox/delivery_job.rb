@@ -20,6 +20,7 @@ module RailsWebhookOutbox
         delivered_at: Time.current,
         attempts: delivery.attempts + 1
       )
+      Rails.logger.info { "[RailsWebhookOutbox] delivered event=#{delivery.event} delivery_id=#{delivery.id} subscription_id=#{delivery.subscription_id} status=#{response.code} duration=#{duration_ms}ms" }
       notify("webhook.delivered.rails_webhook_outbox", delivery, duration_ms)
     rescue DeliveryError => e
       duration_ms = elapsed_ms(start)
@@ -32,8 +33,13 @@ module RailsWebhookOutbox
         status: final ? :failed : :pending,
         next_retry_at: final ? nil : Time.current + ((executions**4) + 2).seconds
       )
-      notify("webhook.failed.rails_webhook_outbox", delivery, duration_ms) if final
-      raise unless final
+      if final
+        Rails.logger.error { "[RailsWebhookOutbox] failed event=#{delivery.event} delivery_id=#{delivery.id} subscription_id=#{delivery.subscription_id} status=#{e.response_code} attempts=#{delivery.attempts}" }
+        notify("webhook.failed.rails_webhook_outbox", delivery, duration_ms)
+      else
+        Rails.logger.warn { "[RailsWebhookOutbox] retry event=#{delivery.event} delivery_id=#{delivery.id} subscription_id=#{delivery.subscription_id} status=#{e.response_code} attempt=#{delivery.attempts} next_retry_at=#{delivery.next_retry_at.utc.iso8601}" }
+        raise
+      end
     end
 
     private

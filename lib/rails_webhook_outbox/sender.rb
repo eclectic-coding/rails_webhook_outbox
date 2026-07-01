@@ -17,6 +17,7 @@ module RailsWebhookOutbox
       uri = URI.parse(@delivery.subscription.url)
       body = build_body
       request = build_request(uri, body)
+      Rails.logger.info { "[RailsWebhookOutbox] attempt event=#{@delivery.event} key=#{@delivery.idempotency_key} url=#{uri}" }
       response = execute(uri, request)
       raise DeliveryError.new(response) unless response.is_a?(Net::HTTPSuccess)
       response
