@@ -18,6 +18,7 @@ A Rails engine for sending outgoing webhooks with HMAC signing, ActiveJob-based 
 - [Deliveries](#deliveries)
 - [Async Delivery](#async-delivery)
 - [Instrumentation](#instrumentation)
+- [Logging](#logging)
 - [HTTP Request Format](#http-request-format)
 - [HMAC Signing](#hmac-signing)
 - [Usage](#usage)
@@ -194,6 +195,30 @@ ActiveSupport::Notifications.subscribe("webhook.failed.rails_webhook_outbox") do
   Sentry.capture_message("Webhook permanently failed", extra: event.payload)
 end
 ```
+
+[Back to top](#table-of-contents)
+
+## Logging
+
+`Sender` and `DeliveryJob` emit structured `Rails.logger` output for every delivery lifecycle event. All lines are prefixed `[RailsWebhookOutbox]` in key=value format, making them easy to grep and compatible with Logfmt-aware log aggregators (Datadog, Papertrail, etc.).
+
+| Source | Level | When | Keys logged |
+|--------|-------|------|-------------|
+| `Sender` | `info` | Before each HTTP call | `event`, `key` (idempotency key), `url` |
+| `DeliveryJob` | `info` | Successful delivery | `event`, `delivery_id`, `subscription_id`, `status`, `duration` |
+| `DeliveryJob` | `warn` | Retryable failure | `event`, `delivery_id`, `subscription_id`, `status`, `attempt`, `next_retry_at` |
+| `DeliveryJob` | `error` | Permanent failure (all retries exhausted) | `event`, `delivery_id`, `subscription_id`, `status`, `attempts` |
+
+Example lines:
+
+```
+[RailsWebhookOutbox] attempt event=order.created key=550e8400-e29b-41d4-a716-446655440000 url=https://example.com/webhooks
+[RailsWebhookOutbox] delivered event=order.created delivery_id=1 subscription_id=1 status=200 duration=45ms
+[RailsWebhookOutbox] retry event=order.created delivery_id=1 subscription_id=1 status=503 attempt=1 next_retry_at=2026-07-01T00:00:13Z
+[RailsWebhookOutbox] failed event=order.created delivery_id=1 subscription_id=1 status=503 attempts=3
+```
+
+No configuration is required — logging is always on and respects your application's log level.
 
 [Back to top](#table-of-contents)
 
