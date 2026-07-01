@@ -3,6 +3,8 @@ class CreateWebhookOutboxSubscriptions < ActiveRecord::Migration[<%= ActiveRecor
     create_table :webhook_outbox_subscriptions do |t|
       t.string :url, null: false
       t.string :secret, null: false
+      t.string :previous_secret
+      t.datetime :previous_secret_expires_at
       t.json :events, null: false, default: []
       t.boolean :active, null: false, default: true
       t.string :description

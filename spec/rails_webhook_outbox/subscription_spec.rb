@@ -102,4 +102,81 @@ RSpec.describe RailsWebhookOutbox::Subscription do
       expect(subscription.subscribes_to?(:"order.created")).to be(true)
     end
   end
+
+  describe "#rotate_secret!" do
+    before { subscription.save! }
+
+    it "generates a new secret" do
+      old_secret = subscription.secret
+      subscription.rotate_secret!
+      expect(subscription.secret).not_to eq(old_secret)
+    end
+
+    it "moves the old secret to previous_secret" do
+      old_secret = subscription.secret
+      subscription.rotate_secret!
+      expect(subscription.previous_secret).to eq(old_secret)
+    end
+
+    it "sets previous_secret_expires_at using the configured grace period" do
+      RailsWebhookOutbox.configure { |c| c.secret_rotation_grace_period = 2.hours }
+      subscription.rotate_secret!
+      expect(subscription.previous_secret_expires_at).to be_within(1).of(2.hours.from_now)
+      RailsWebhookOutbox.reset_configuration!
+    end
+
+    it "accepts an explicit grace_period override" do
+      subscription.rotate_secret!(grace_period: 1.minute)
+      expect(subscription.previous_secret_expires_at).to be_within(1).of(1.minute.from_now)
+    end
+
+    it "raises SecretRotationError when the previous secret is still active" do
+      subscription.rotate_secret!(grace_period: 1.hour)
+      expect { subscription.rotate_secret! }.to raise_error(RailsWebhookOutbox::SecretRotationError)
+    end
+
+    it "does not raise when the previous secret has already expired" do
+      subscription.rotate_secret!(grace_period: -1.hour)
+      expect { subscription.rotate_secret! }.not_to raise_error
+    end
+
+    it "allows overwriting an active previous secret when force: true is passed" do
+      subscription.rotate_secret!(grace_period: 1.hour)
+      previous_secret = subscription.secret
+      subscription.rotate_secret!(force: true)
+      expect(subscription.previous_secret).to eq(previous_secret)
+    end
+  end
+
+  describe "#previous_secret_active?" do
+    before { subscription.save! }
+
+    it "returns false when no secret has been rotated" do
+      expect(subscription.previous_secret_active?).to be(false)
+    end
+
+    it "returns true when the previous secret has not yet expired" do
+      subscription.rotate_secret!(grace_period: 1.hour)
+      expect(subscription.previous_secret_active?).to be(true)
+    end
+
+    it "returns false when the previous secret's grace period has expired" do
+      subscription.rotate_secret!(grace_period: -1.hour)
+      expect(subscription.previous_secret_active?).to be(false)
+    end
+  end
+
+  describe "#signing_secrets" do
+    before { subscription.save! }
+
+    it "returns only the current secret when there is no active previous secret" do
+      expect(subscription.signing_secrets).to eq([subscription.secret])
+    end
+
+    it "returns both secrets while the previous secret is within its grace period" do
+      old_secret = subscription.secret
+      subscription.rotate_secret!(grace_period: 1.hour)
+      expect(subscription.signing_secrets).to eq([subscription.secret, old_secret])
+    end
+  end
 end

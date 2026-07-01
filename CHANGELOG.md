@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Secret rotation — `Subscription#rotate_secret!` generates a new HMAC secret and keeps the old one valid for a configurable grace period (`config.secret_rotation_grace_period`, default 24 hours). While the previous secret is active, outgoing requests are signed with both secrets so subscribers can transition without downtime; `X-Webhook-Signature` carries a comma-separated list of signatures. `RailsWebhookOutbox::Signature.header_value` now also accepts an array of secrets. Rotating again before the previous secret's grace period ends raises `RailsWebhookOutbox::SecretRotationError` unless `force: true` is passed.
 - `ActiveSupport::Notifications` instrumentation — `DeliveryJob` publishes `webhook.delivered.rails_webhook_outbox` on successful delivery and `webhook.failed.rails_webhook_outbox` on permanent failure (all retries exhausted). Each event payload includes `event`, `subscription_id`, `delivery_id`, and `duration` (integer milliseconds). Non-final failures publish no notification.
 - Structured logging — `Sender` logs an `info`-level attempt line (event, idempotency key, URL) before each HTTP call. `DeliveryJob` logs `info` on success (with response code and duration), `warn` on retryable failure (with attempt count and `next_retry_at`), and `error` on permanent failure. All lines are prefixed `[RailsWebhookOutbox]` in key=value format.
 
