@@ -97,6 +97,14 @@ RSpec.describe RailsWebhookOutbox::DeliveryJob do
 
         expect(events).to be_empty
       end
+
+      it "logs the delivery at info level" do
+        messages = []
+        allow(Rails.logger).to receive(:info) { |&blk| messages << blk&.call }
+        described_class.perform_now(delivery)
+        webhook_log = messages.find { |m| m&.include?("[RailsWebhookOutbox]") }
+        expect(webhook_log).to include("delivered", delivery.event, delivery.id.to_s)
+      end
     end
 
     context "on a non-final failure (below max_retries)" do
@@ -133,6 +141,13 @@ RSpec.describe RailsWebhookOutbox::DeliveryJob do
       it "sets next_retry_at to a future time" do
         described_class.perform_now(delivery) rescue RailsWebhookOutbox::DeliveryError
         expect(delivery.reload.next_retry_at).to be > Time.current
+      end
+
+      it "logs a retry warning" do
+        msg = nil
+        allow(Rails.logger).to receive(:warn) { |&blk| msg = blk&.call }
+        described_class.perform_now(delivery) rescue RailsWebhookOutbox::DeliveryError
+        expect(msg).to include("[RailsWebhookOutbox]", "retry", delivery.event, delivery.id.to_s)
       end
 
       it "does not publish any notification" do
@@ -210,6 +225,13 @@ RSpec.describe RailsWebhookOutbox::DeliveryJob do
         ) { described_class.perform_now(delivery) }
 
         expect(events).to be_empty
+      end
+
+      it "logs a permanent failure at error level" do
+        msg = nil
+        allow(Rails.logger).to receive(:error) { |&blk| msg = blk&.call }
+        described_class.perform_now(delivery)
+        expect(msg).to include("[RailsWebhookOutbox]", "failed", delivery.event, delivery.id.to_s)
       end
     end
 

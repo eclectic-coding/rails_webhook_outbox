@@ -65,6 +65,13 @@ RSpec.describe RailsWebhookOutbox::Sender do
         response = described_class.call(delivery)
         expect(response.code).to eq("200")
       end
+
+      it "logs the attempt at info level" do
+        msg = nil
+        allow(Rails.logger).to receive(:info) { |&blk| msg = blk&.call }
+        described_class.call(delivery)
+        expect(msg).to include("[RailsWebhookOutbox]", "attempt", "order.created", url)
+      end
     end
 
     context "on a non-2xx response" do
