@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_01_000001) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_01_000002) do
   create_table "orders", force: :cascade do |t|
     t.datetime "cancelled_at"
     t.datetime "created_at", null: false
@@ -42,6 +42,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_01_000001) do
 
   create_table "webhook_outbox_subscriptions", force: :cascade do |t|
     t.boolean "active", default: true, null: false
+    t.integer "consecutive_failures", default: 0, null: false
     t.datetime "created_at", null: false
     t.string "description"
     t.json "events", default: [], null: false

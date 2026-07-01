@@ -28,6 +28,7 @@ create_table :webhook_outbox_subscriptions do |t|
   t.datetime :previous_secret_expires_at   # when previous_secret stops being accepted
   t.json    :events,      null: false, default: [] # ["order.created", "order.updated"]
   t.boolean :active,      null: false, default: true
+  t.integer :consecutive_failures, null: false, default: 0  # trips the circuit breaker
   t.string  :description
   t.json    :metadata,    default: {}
   t.timestamps
@@ -70,6 +71,7 @@ WebhookOutbox.configure do |config|
   config.retry_backoff      = :exponential  # 1, 2, 4, 8, 16, 32, 64, 128 min
   config.request_timeout    = 5             # seconds
   config.delivery_job_queue = :webhooks     # ActiveJob queue name
+  config.circuit_breaker_threshold = 10     # consecutive permanent failures before auto-disabling; nil/0 disables
 end
 ```
 
@@ -162,10 +164,11 @@ end
 |-------|------|
 | `webhook.delivered.rails_webhook_outbox` | HTTP call succeeded (2xx response) |
 | `webhook.failed.rails_webhook_outbox` | All retries exhausted — permanent failure |
+| `webhook.circuit_breaker_tripped.rails_webhook_outbox` | A permanent failure pushed `consecutive_failures` to `config.circuit_breaker_threshold`, auto-disabling the subscription |
 
 Non-final failures (retryable errors) publish no notification.
 
-**Payload keys** (same for both events):
+**Payload keys** for `webhook.delivered` / `webhook.failed`:
 
 | Key | Type | Description |
 |-----|------|-------------|
@@ -173,6 +176,13 @@ Non-final failures (retryable errors) publish no notification.
 | `subscription_id` | Integer | ID of the `Subscription` record |
 | `delivery_id` | Integer | ID of the `Delivery` record |
 | `duration` | Integer | Elapsed time in milliseconds for the HTTP attempt (0 in test_mode) |
+
+**Payload keys** for `webhook.circuit_breaker_tripped`:
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `subscription_id` | Integer | ID of the `Subscription` record that was disabled |
+| `consecutive_failures` | Integer | Consecutive permanent failures at the moment the breaker tripped |
 
 **Example subscriber:**
 
@@ -187,6 +197,12 @@ ActiveSupport::Notifications.subscribe("webhook.failed.rails_webhook_outbox") do
   Sentry.capture_message("Webhook permanently failed",
     extra: event.payload.slice(:event, :subscription_id, :delivery_id))
 end
+
+ActiveSupport::Notifications.subscribe("webhook.circuit_breaker_tripped.rails_webhook_outbox") do |*args|
+  event = ActiveSupport::Notifications::Event.new(*args)
+  Sentry.capture_message("Webhook subscription auto-disabled",
+    extra: event.payload.slice(:subscription_id, :consecutive_failures))
+end
 ```
 
 ## Logging
@@ -199,6 +215,7 @@ end
 | `DeliveryJob` | `info` | Successful delivery | `event`, `delivery_id`, `subscription_id`, `status`, `duration` |
 | `DeliveryJob` | `warn` | Retryable failure | `event`, `delivery_id`, `subscription_id`, `status`, `attempt`, `next_retry_at` |
 | `DeliveryJob` | `error` | Permanent failure | `event`, `delivery_id`, `subscription_id`, `status`, `attempts` |
+| `DeliveryJob` | `warn` | Circuit breaker tripped | `subscription_id`, `consecutive_failures` |
 
 Example output:
 
@@ -207,6 +224,7 @@ Example output:
 [RailsWebhookOutbox] delivered event=order.created delivery_id=1 subscription_id=1 status=200 duration=45ms
 [RailsWebhookOutbox] retry event=order.created delivery_id=1 subscription_id=1 status=503 attempt=1 next_retry_at=2026-07-01T00:00:13Z
 [RailsWebhookOutbox] failed event=order.created delivery_id=1 subscription_id=1 status=503 attempts=3
+[RailsWebhookOutbox] circuit_breaker_tripped subscription_id=1 consecutive_failures=10
 ```
 
 ## HMAC signing verification (for subscribers)
@@ -238,6 +256,33 @@ the grace window without dropping any webhook deliveries.
 The schema holds only one previous secret, so rotating again while the previous one is still
 active raises `RailsWebhookOutbox::SecretRotationError` rather than silently discarding it. Pass
 `force: true` to rotate anyway.
+
+## Circuit breaker
+
+`Subscription#consecutive_failures` tracks how many deliveries in a row have permanently failed
+(all retries exhausted). `DeliveryJob` calls `Subscription#record_delivery_success!` on every
+successful delivery, resetting the counter to zero, and `Subscription#record_delivery_failure!` on
+every permanent failure, incrementing it.
+
+Once `consecutive_failures` reaches `config.circuit_breaker_threshold` (default 10), the
+subscription is automatically set `active: false` — no further deliveries are dispatched to it
+until an operator re-enables it — and `webhook.circuit_breaker_tripped.rails_webhook_outbox` is
+published. Set `config.circuit_breaker_threshold` to `nil` or `0` to disable auto-disabling
+entirely.
+
+`DeliveryJob` checks `subscription.active?` before every attempt (not just at dispatch time), so
+deliveries already in flight when the breaker trips are skipped — marked `failed` immediately,
+without another HTTP call or retry — instead of continuing to hammer the now-disabled endpoint on
+their own backoff schedule. The same check applies to a subscription an operator disables manually.
+
+`record_delivery_failure!` is wrapped in `with_lock` so the read-increment-compare-disable sequence
+is atomic per subscription row, and the increment is skipped once the subscription is already
+inactive — otherwise `consecutive_failures` would climb unboundedly after tripping. Reactivating a
+subscription (`active: false` → `true`) resets `consecutive_failures` to zero immediately, so a
+single failure right after re-enabling doesn't instantly re-trip the breaker.
+
+Retryable (non-final) failures do not count towards the threshold; only a delivery that has
+exhausted all of `config.max_retries` counts as one consecutive failure.
 
 ## Dashboard routes
 

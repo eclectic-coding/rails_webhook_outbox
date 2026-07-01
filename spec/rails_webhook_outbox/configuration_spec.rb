@@ -43,6 +43,10 @@ RSpec.describe RailsWebhookOutbox::Configuration do
     it "sets secret_rotation_grace_period to 24 hours" do
       expect(config.secret_rotation_grace_period).to eq(24.hours)
     end
+
+    it "sets circuit_breaker_threshold to 10" do
+      expect(config.circuit_breaker_threshold).to eq(10)
+    end
   end
 
   describe "#signing_algorithm=" do
@@ -132,6 +136,16 @@ RSpec.describe RailsWebhookOutbox::Configuration do
     it "allows setting delivery_job_queue" do
       config.delivery_job_queue = :critical
       expect(config.delivery_job_queue).to eq(:critical)
+    end
+
+    it "allows setting circuit_breaker_threshold" do
+      config.circuit_breaker_threshold = 5
+      expect(config.circuit_breaker_threshold).to eq(5)
+    end
+
+    it "allows disabling circuit_breaker_threshold with nil" do
+      config.circuit_breaker_threshold = nil
+      expect(config.circuit_breaker_threshold).to be_nil
     end
   end
 end
