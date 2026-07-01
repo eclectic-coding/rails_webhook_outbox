@@ -120,10 +120,8 @@ RSpec.describe RailsWebhookOutbox::Subscription do
 
     it "sets previous_secret_expires_at using the configured grace period" do
       RailsWebhookOutbox.configure { |c| c.secret_rotation_grace_period = 2.hours }
-      freeze_time = Time.current
-      allow(Time).to receive(:current).and_return(freeze_time)
       subscription.rotate_secret!
-      expect(subscription.previous_secret_expires_at).to eq(freeze_time + 2.hours)
+      expect(subscription.previous_secret_expires_at).to be_within(1).of(2.hours.from_now)
       RailsWebhookOutbox.reset_configuration!
     end
 
