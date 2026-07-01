@@ -24,6 +24,8 @@ A Rails engine for sending outgoing webhooks with HMAC signing, ActiveJob-based 
 create_table :webhook_outbox_subscriptions do |t|
   t.string  :url,         null: false
   t.string  :secret,      null: false  # auto-generated HMAC secret
+  t.string  :previous_secret               # prior secret, active during rotation grace period
+  t.datetime :previous_secret_expires_at   # when previous_secret stops being accepted
   t.json    :events,      null: false, default: [] # ["order.created", "order.updated"]
   t.boolean :active,      null: false, default: true
   t.string  :description
@@ -209,10 +211,33 @@ Example output:
 
 ## HMAC signing verification (for subscribers)
 
+The header may contain more than one comma-separated `algorithm=digest` pair while a subscription's
+secret is rotating (see below), so check each one and accept the request if any match:
+
 ```ruby
-expected = "sha256=" + OpenSSL::HMAC.hexdigest("SHA256", secret, raw_body)
-Rack::Utils.secure_compare(expected, request.headers["X-Webhook-Signature"])
+expected = OpenSSL::HMAC.hexdigest("SHA256", secret, raw_body)
+signatures = request.headers["X-Webhook-Signature"].to_s.split(",")
+valid = signatures.any? { |sig| Rack::Utils.secure_compare(sig, "sha256=#{expected}") }
 ```
+
+## Secret rotation
+
+`Subscription#rotate_secret!` generates a new HMAC secret while keeping the old one valid for a
+configurable grace period (`config.secret_rotation_grace_period`, default 24 hours). During the
+grace period, outgoing requests are signed with **both** secrets — the header carries a
+comma-separated list of `algorithm=digest` pairs, one per active secret:
+
+```
+X-Webhook-Signature: sha256=<new-secret-digest>,sha256=<previous-secret-digest>
+```
+
+See the verification snippet above for how subscribers should accept a header that carries more
+than one signature. This lets a subscriber update their configured secret at their own pace within
+the grace window without dropping any webhook deliveries.
+
+The schema holds only one previous secret, so rotating again while the previous one is still
+active raises `RailsWebhookOutbox::SecretRotationError` rather than silently discarding it. Pass
+`force: true` to rotate anyway.
 
 ## Dashboard routes
 

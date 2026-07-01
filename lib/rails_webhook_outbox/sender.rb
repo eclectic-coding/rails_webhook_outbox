@@ -36,7 +36,7 @@ module RailsWebhookOutbox
     def build_request(uri, body)
       req = Net::HTTP::Post.new(uri)
       req["Content-Type"] = "application/json"
-      req["X-Webhook-Signature"] = Signature.header_value(body, @delivery.subscription.secret)
+      req["X-Webhook-Signature"] = Signature.header_value(body, @delivery.subscription.signing_secrets)
       req["X-Webhook-Event"] = @delivery.event
       req["X-Webhook-Delivery"] = @delivery.idempotency_key
       req["X-Webhook-Timestamp"] = Time.now.utc.to_i.to_s

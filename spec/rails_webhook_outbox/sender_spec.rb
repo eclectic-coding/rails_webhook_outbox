@@ -4,7 +4,7 @@ RSpec.describe RailsWebhookOutbox::Sender do
   let(:url)             { "https://example.com/webhooks" }
   let(:secret)          { "test-secret" }
   let(:idempotency_key) { "550e8400-e29b-41d4-a716-446655440000" }
-  let(:subscription)    { double("Subscription", url: url, secret: secret) }
+  let(:subscription)    { double("Subscription", url: url, secret: secret, signing_secrets: [secret]) }
   let(:delivery) do
     double("Delivery", subscription: subscription, event: "order.created",
       payload: { "id" => 1 }, idempotency_key: idempotency_key)
@@ -49,6 +49,13 @@ RSpec.describe RailsWebhookOutbox::Sender do
         described_class.call(delivery)
         expect(WebMock).to have_requested(:post, url)
           .with(headers: { "X-Webhook-Signature" => /\Asha256=/ })
+      end
+
+      it "includes a signature for every secret returned by the subscription" do
+        allow(subscription).to receive(:signing_secrets).and_return([secret, "previous-secret"])
+        described_class.call(delivery)
+        expect(WebMock).to have_requested(:post, url)
+          .with(headers: { "X-Webhook-Signature" => /\Asha256=.+,sha256=.+\z/ })
       end
 
       it "sends a JSON body with event, delivered_at, and data keys" do

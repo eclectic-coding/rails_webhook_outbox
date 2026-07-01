@@ -39,6 +39,10 @@ RSpec.describe RailsWebhookOutbox::Configuration do
     it "sets test_mode to false" do
       expect(config.test_mode).to be false
     end
+
+    it "sets secret_rotation_grace_period to 24 hours" do
+      expect(config.secret_rotation_grace_period).to eq(24.hours)
+    end
   end
 
   describe "#signing_algorithm=" do
@@ -74,6 +78,33 @@ RSpec.describe RailsWebhookOutbox::Configuration do
 
     it "raises on invalid strategy" do
       expect { config.retry_backoff = :constant }.to raise_error(ArgumentError, /Unknown retry backoff strategy: constant/)
+    end
+  end
+
+  describe "#secret_rotation_grace_period=" do
+    it "accepts a positive duration" do
+      config.secret_rotation_grace_period = 48.hours
+      expect(config.secret_rotation_grace_period).to eq(48.hours)
+    end
+
+    it "accepts a positive number of seconds" do
+      config.secret_rotation_grace_period = 3600
+      expect(config.secret_rotation_grace_period).to eq(3600)
+    end
+
+    it "raises on a negative duration" do
+      expect { config.secret_rotation_grace_period = -1.hour }
+        .to raise_error(ArgumentError, /secret_rotation_grace_period must be a positive duration/)
+    end
+
+    it "raises on zero" do
+      expect { config.secret_rotation_grace_period = 0 }
+        .to raise_error(ArgumentError, /secret_rotation_grace_period must be a positive duration/)
+    end
+
+    it "raises on a non-numeric value" do
+      expect { config.secret_rotation_grace_period = "1 day" }
+        .to raise_error(ArgumentError, /secret_rotation_grace_period must be a positive duration/)
     end
   end
 

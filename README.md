@@ -21,6 +21,7 @@ A Rails engine for sending outgoing webhooks with HMAC signing, ActiveJob-based 
 - [Logging](#logging)
 - [HTTP Request Format](#http-request-format)
 - [HMAC Signing](#hmac-signing)
+- [Secret Rotation](#secret-rotation)
 - [Usage](#usage)
 - [Manual Dispatch](#manual-dispatch)
 - [Testing](#testing)
@@ -68,6 +69,7 @@ RailsWebhookOutbox.configure do |config|
   config.request_timeout    = 5
   config.delivery_job_queue = :webhooks
   config.max_payload_size   = 65_536  # bytes; set to nil or 0 to disable
+  config.secret_rotation_grace_period = 24.hours
 end
 ```
 
@@ -255,11 +257,14 @@ Every outgoing request includes an `X-Webhook-Signature` header (configurable) c
 X-Webhook-Signature: sha256=a1b2c3d4...
 ```
 
-Subscribers can verify the signature:
+Subscribers can verify the signature. The header may contain more than one comma-separated
+`algorithm=digest` pair while a subscription's secret is [rotating](#secret-rotation), so check
+each one and accept the request if any match:
 
 ```ruby
-expected = RailsWebhookOutbox::Signature.header_value(raw_body, subscription.secret)
-Rack::Utils.secure_compare(expected, request.headers["X-Webhook-Signature"])
+expected = RailsWebhookOutbox::Signature.sign(raw_body, subscription.secret, :sha256)
+signatures = request.headers["X-Webhook-Signature"].to_s.split(",")
+valid = signatures.any? { |sig| Rack::Utils.secure_compare(sig, "sha256=#{expected}") }
 ```
 
 You can also call the primitives directly:
@@ -273,6 +278,42 @@ RailsWebhookOutbox::Signature.sign(payload, secret, :sha256)
 RailsWebhookOutbox::Signature.header_value(payload, secret)
 # => "sha256=a1b2c3d4..."
 ```
+
+`header_value` also accepts an array of secrets, signing the payload with each one and joining the
+results with a comma — this is how dual-secret signing works during [secret rotation](#secret-rotation).
+
+[Back to top](#table-of-contents)
+
+## Secret Rotation
+
+Rotate a subscription's HMAC secret without dropping any webhook deliveries:
+
+```ruby
+sub.rotate_secret!
+```
+
+This generates a new secret and moves the old one to `previous_secret`, valid until
+`previous_secret_expires_at` (set from `config.secret_rotation_grace_period`, default 24 hours).
+Pass `grace_period:` to override it for a single rotation:
+
+```ruby
+sub.rotate_secret!(grace_period: 3.days)
+```
+
+Calling `rotate_secret!` again while a previous secret is still within its grace period raises
+`RailsWebhookOutbox::SecretRotationError`, since the schema only holds one previous secret — doing
+so would silently invalidate a secret subscribers may not have finished transitioning to yet. Pass
+`force: true` to rotate anyway and discard it immediately.
+
+While `previous_secret` is still active, every outgoing request is signed with **both** secrets —
+`X-Webhook-Signature` carries a comma-separated list of `algorithm=digest` pairs:
+
+```
+X-Webhook-Signature: sha256=<new-secret-digest>,sha256=<previous-secret-digest>
+```
+
+See [HMAC Signing](#hmac-signing) for how subscribers should verify a header that may contain more
+than one signature.
 
 [Back to top](#table-of-contents)
 
