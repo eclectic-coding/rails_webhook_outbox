@@ -105,6 +105,12 @@ RSpec.describe RailsWebhookOutbox::DeliveryJob do
         webhook_log = messages.find { |m| m&.include?("[RailsWebhookOutbox]") }
         expect(webhook_log).to include("delivered", delivery.event, delivery.id.to_s)
       end
+
+      it "resets the subscription's consecutive_failures" do
+        subscription.update!(consecutive_failures: 3)
+        described_class.perform_now(delivery)
+        expect(subscription.reload.consecutive_failures).to eq(0)
+      end
     end
 
     context "on a non-final failure (below max_retries)" do
@@ -167,6 +173,11 @@ RSpec.describe RailsWebhookOutbox::DeliveryJob do
 
         expect(delivered_events).to be_empty
         expect(failed_events).to be_empty
+      end
+
+      it "does not increment the subscription's consecutive_failures" do
+        described_class.perform_now(delivery) rescue RailsWebhookOutbox::DeliveryError
+        expect(subscription.reload.consecutive_failures).to eq(0)
       end
     end
 
@@ -233,6 +244,94 @@ RSpec.describe RailsWebhookOutbox::DeliveryJob do
         described_class.perform_now(delivery)
         expect(msg).to include("[RailsWebhookOutbox]", "failed", delivery.event, delivery.id.to_s)
       end
+
+      it "increments the subscription's consecutive_failures" do
+        described_class.perform_now(delivery)
+        expect(subscription.reload.consecutive_failures).to eq(1)
+      end
+
+      context "when consecutive_failures reaches the circuit_breaker_threshold" do
+        before { RailsWebhookOutbox.configure { |c| c.circuit_breaker_threshold = 1 } }
+
+        it "disables the subscription" do
+          described_class.perform_now(delivery)
+          expect(subscription.reload).not_to be_active
+        end
+
+        it "logs the circuit breaker trip at warn level" do
+          msg = nil
+          allow(Rails.logger).to receive(:warn) { |&blk| msg = blk&.call }
+          described_class.perform_now(delivery)
+          expect(msg).to include("[RailsWebhookOutbox]", "circuit_breaker_tripped", subscription.id.to_s)
+        end
+
+        it "publishes webhook.circuit_breaker_tripped.rails_webhook_outbox" do
+          events = []
+          ActiveSupport::Notifications.subscribed(
+            ->(name, _start, _finish, _id, payload) { events << { name:, payload: } },
+            "webhook.circuit_breaker_tripped.rails_webhook_outbox"
+          ) { described_class.perform_now(delivery) }
+
+          expect(events.size).to eq(1)
+          expect(events.first[:payload]).to include(subscription_id: subscription.id, consecutive_failures: 1)
+        end
+      end
+
+      context "when consecutive_failures is below the circuit_breaker_threshold" do
+        before { RailsWebhookOutbox.configure { |c| c.circuit_breaker_threshold = 5 } }
+
+        it "leaves the subscription active" do
+          described_class.perform_now(delivery)
+          expect(subscription.reload).to be_active
+        end
+
+        it "does not publish webhook.circuit_breaker_tripped.rails_webhook_outbox" do
+          events = []
+          ActiveSupport::Notifications.subscribed(
+            ->(_name, _start, _finish, _id, payload) { events << payload },
+            "webhook.circuit_breaker_tripped.rails_webhook_outbox"
+          ) { described_class.perform_now(delivery) }
+
+          expect(events).to be_empty
+        end
+      end
+    end
+
+    context "when the subscription is inactive" do
+      before { subscription.update!(active: false) }
+
+      it "does not call Sender" do
+        expect(RailsWebhookOutbox::Sender).not_to receive(:call)
+        described_class.perform_now(delivery)
+      end
+
+      it "marks the delivery as failed" do
+        described_class.perform_now(delivery)
+        expect(delivery.reload).to be_failed
+      end
+
+      it "clears next_retry_at" do
+        delivery.update!(next_retry_at: 1.hour.from_now)
+        described_class.perform_now(delivery)
+        expect(delivery.reload.next_retry_at).to be_nil
+      end
+
+      it "logs the skip at warn level" do
+        msg = nil
+        allow(Rails.logger).to receive(:warn) { |&blk| msg = blk&.call }
+        described_class.perform_now(delivery)
+        expect(msg).to include("[RailsWebhookOutbox]", "skipped", delivery.event, delivery.id.to_s, "subscription_inactive")
+      end
+
+      it "does not publish any notification" do
+        events = []
+        ActiveSupport::Notifications.subscribed(
+          ->(name, _start, _finish, _id, _payload) { events << name },
+          /\Awebhook\..*\.rails_webhook_outbox\z/
+        ) { described_class.perform_now(delivery) }
+
+        expect(events).to be_empty
+      end
     end
 
     context "in test_mode" do
@@ -268,6 +367,12 @@ RSpec.describe RailsWebhookOutbox::DeliveryJob do
           delivery_id: delivery.id,
           duration: 0
         )
+      end
+
+      it "resets the subscription's consecutive_failures" do
+        subscription.update!(consecutive_failures: 3)
+        described_class.perform_now(delivery)
+        expect(subscription.reload.consecutive_failures).to eq(0)
       end
     end
 

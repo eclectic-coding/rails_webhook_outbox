@@ -179,4 +179,89 @@ RSpec.describe RailsWebhookOutbox::Subscription do
       expect(subscription.signing_secrets).to eq([subscription.secret, old_secret])
     end
   end
+
+  describe "#record_delivery_success!" do
+    before { subscription.save! }
+
+    it "resets consecutive_failures to zero" do
+      subscription.update!(consecutive_failures: 3)
+      subscription.record_delivery_success!
+      expect(subscription.reload.consecutive_failures).to eq(0)
+    end
+
+    it "does not write to the database when already zero" do
+      expect { subscription.record_delivery_success! }.not_to change { subscription.reload.updated_at }
+    end
+  end
+
+  describe "#record_delivery_failure!" do
+    before { subscription.save! }
+
+    it "increments consecutive_failures" do
+      subscription.record_delivery_failure!
+      expect(subscription.reload.consecutive_failures).to eq(1)
+    end
+
+    it "does not disable the subscription below the threshold" do
+      subscription.record_delivery_failure!(threshold: 3)
+      expect(subscription.reload).to be_active
+    end
+
+    it "disables the subscription once the threshold is reached" do
+      2.times { subscription.record_delivery_failure!(threshold: 3) }
+      subscription.record_delivery_failure!(threshold: 3)
+      expect(subscription.reload).not_to be_active
+    end
+
+    it "returns true when the failure trips the circuit breaker" do
+      2.times { subscription.record_delivery_failure!(threshold: 3) }
+      expect(subscription.record_delivery_failure!(threshold: 3)).to be(true)
+    end
+
+    it "returns false when the failure does not trip the circuit breaker" do
+      expect(subscription.record_delivery_failure!(threshold: 3)).to be(false)
+    end
+
+    it "does not trip when threshold is nil" do
+      10.times { subscription.record_delivery_failure!(threshold: nil) }
+      expect(subscription.reload).to be_active
+    end
+
+    it "does not trip when threshold is zero" do
+      10.times { subscription.record_delivery_failure!(threshold: 0) }
+      expect(subscription.reload).to be_active
+    end
+
+    it "does not re-trip an already-disabled subscription" do
+      3.times { subscription.record_delivery_failure!(threshold: 3) }
+      expect(subscription.record_delivery_failure!(threshold: 3)).to be(false)
+    end
+
+    it "does not keep incrementing consecutive_failures once disabled" do
+      3.times { subscription.record_delivery_failure!(threshold: 3) }
+      subscription.record_delivery_failure!(threshold: 3)
+      expect(subscription.reload.consecutive_failures).to eq(3)
+    end
+
+    it "resets consecutive_failures to zero when manually reactivated" do
+      3.times { subscription.record_delivery_failure!(threshold: 3) }
+      subscription.reload.update!(active: true)
+      expect(subscription.consecutive_failures).to eq(0)
+    end
+
+    it "does not instantly re-trip after being reactivated and immediately failing again" do
+      3.times { subscription.record_delivery_failure!(threshold: 3) }
+      subscription.reload.update!(active: true)
+      expect(subscription.record_delivery_failure!(threshold: 3)).to be(false)
+      expect(subscription.reload).to be_active
+    end
+
+    it "uses the configured circuit_breaker_threshold by default" do
+      RailsWebhookOutbox.configure { |c| c.circuit_breaker_threshold = 2 }
+      subscription.record_delivery_failure!
+      subscription.record_delivery_failure!
+      expect(subscription.reload).not_to be_active
+      RailsWebhookOutbox.reset_configuration!
+    end
+  end
 end

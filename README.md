@@ -22,6 +22,7 @@ A Rails engine for sending outgoing webhooks with HMAC signing, ActiveJob-based 
 - [HTTP Request Format](#http-request-format)
 - [HMAC Signing](#hmac-signing)
 - [Secret Rotation](#secret-rotation)
+- [Circuit Breaker](#circuit-breaker)
 - [Usage](#usage)
 - [Manual Dispatch](#manual-dispatch)
 - [Testing](#testing)
@@ -70,6 +71,7 @@ RailsWebhookOutbox.configure do |config|
   config.delivery_job_queue = :webhooks
   config.max_payload_size   = 65_536  # bytes; set to nil or 0 to disable
   config.secret_rotation_grace_period = 24.hours
+  config.circuit_breaker_threshold = 10  # consecutive permanent failures before auto-disabling; nil or 0 disables
 end
 ```
 
@@ -174,8 +176,9 @@ RailsWebhookOutbox::DeliveryJob.perform_later(delivery)
 |-------|------|
 | `webhook.delivered.rails_webhook_outbox` | Delivery succeeded (2xx response) |
 | `webhook.failed.rails_webhook_outbox` | All retries exhausted — permanent failure |
+| `webhook.circuit_breaker_tripped.rails_webhook_outbox` | A permanent failure auto-disabled the subscription — see [Circuit Breaker](#circuit-breaker) |
 
-Each event payload includes:
+`webhook.delivered` / `webhook.failed` payloads include:
 
 | Key | Type | Description |
 |-----|------|-------------|
@@ -183,6 +186,8 @@ Each event payload includes:
 | `subscription_id` | Integer | ID of the `Subscription` record |
 | `delivery_id` | Integer | ID of the `Delivery` record |
 | `duration` | Integer | HTTP round-trip time in milliseconds |
+
+`webhook.circuit_breaker_tripped` payloads include `subscription_id` and `consecutive_failures`.
 
 Subscribe in an initializer:
 
@@ -210,6 +215,7 @@ end
 | `DeliveryJob` | `info` | Successful delivery | `event`, `delivery_id`, `subscription_id`, `status`, `duration` |
 | `DeliveryJob` | `warn` | Retryable failure | `event`, `delivery_id`, `subscription_id`, `status`, `attempt`, `next_retry_at` |
 | `DeliveryJob` | `error` | Permanent failure (all retries exhausted) | `event`, `delivery_id`, `subscription_id`, `status`, `attempts` |
+| `DeliveryJob` | `warn` | Circuit breaker tripped | `subscription_id`, `consecutive_failures` |
 
 Example lines:
 
@@ -218,6 +224,7 @@ Example lines:
 [RailsWebhookOutbox] delivered event=order.created delivery_id=1 subscription_id=1 status=200 duration=45ms
 [RailsWebhookOutbox] retry event=order.created delivery_id=1 subscription_id=1 status=503 attempt=1 next_retry_at=2026-07-01T00:00:13Z
 [RailsWebhookOutbox] failed event=order.created delivery_id=1 subscription_id=1 status=503 attempts=3
+[RailsWebhookOutbox] circuit_breaker_tripped subscription_id=1 consecutive_failures=10
 ```
 
 No configuration is required — logging is always on and respects your application's log level.
@@ -314,6 +321,32 @@ X-Webhook-Signature: sha256=<new-secret-digest>,sha256=<previous-secret-digest>
 
 See [HMAC Signing](#hmac-signing) for how subscribers should verify a header that may contain more
 than one signature.
+
+[Back to top](#table-of-contents)
+
+## Circuit Breaker
+
+Each `Subscription` tracks `consecutive_failures` — how many deliveries in a row have permanently
+failed (all retries exhausted). A successful delivery resets it to zero.
+
+Once `consecutive_failures` reaches `config.circuit_breaker_threshold` (default 10), the
+subscription is automatically disabled (`active: false`) so a persistently failing endpoint stops
+being hammered — deliveries already in flight are skipped rather than retried further once their
+subscription is disabled — and `webhook.circuit_breaker_tripped.rails_webhook_outbox` is published:
+
+```ruby
+ActiveSupport::Notifications.subscribe("webhook.circuit_breaker_tripped.rails_webhook_outbox") do |*args|
+  event = ActiveSupport::Notifications::Event.new(*args)
+  Sentry.capture_message("Webhook subscription auto-disabled",
+    extra: event.payload.slice(:subscription_id, :consecutive_failures))
+end
+```
+
+Set `config.circuit_breaker_threshold` to `nil` or `0` to disable auto-disabling entirely. Retryable
+(non-final) failures don't count towards the threshold — only a delivery that has exhausted all
+retries counts as one consecutive failure. Re-enable a tripped subscription with
+`sub.update!(active: true)`; `consecutive_failures` resets to zero immediately on reactivation, so a
+single subsequent failure won't instantly re-trip the breaker.
 
 [Back to top](#table-of-contents)
 
