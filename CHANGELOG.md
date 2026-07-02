@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-02
+
 ### Added
 - Rake tasks — `webhook_outbox:retry_failed` re-enqueues failed deliveries as `DeliveryJob`s (resetting them to `pending`); `webhook_outbox:list_subscriptions` prints each subscription's status, events, and consecutive failure count; `webhook_outbox:cleanup[days]` deletes `delivered`/`failed` deliveries older than the given number of days.
 - Circuit breaker — `Subscription` tracks `consecutive_failures`, incremented each time a delivery permanently fails (all retries exhausted) and reset to zero on success. Once `consecutive_failures` reaches `config.circuit_breaker_threshold` (default 10; `nil` or `0` disables), the subscription is automatically set `active: false` and `webhook.circuit_breaker_tripped.rails_webhook_outbox` is published with `subscription_id` and `consecutive_failures`. `DeliveryJob` now checks `subscription.active?` before every attempt, so deliveries already in flight are skipped (not retried further) once their subscription is disabled — by the breaker or manually. Reactivating a subscription resets `consecutive_failures` to zero immediately, so it can't be instantly re-tripped by the next failure.
@@ -57,6 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - `spec/rails_helper.rb` — removed broken `require_relative '../config/environment'`; engine migration path now auto-appended and test DB auto-migrated
 
-[Unreleased]: https://github.com/eclectic-coding/rails_webhook_outbox/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/eclectic-coding/rails_webhook_outbox/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/eclectic-coding/rails_webhook_outbox/releases/tag/v0.3.0
 [0.2.0]: https://github.com/eclectic-coding/rails_webhook_outbox/releases/tag/v0.2.0
 [0.1.0]: https://github.com/eclectic-coding/rails_webhook_outbox/releases/tag/v0.1.0
