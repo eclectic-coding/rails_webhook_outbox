@@ -5,12 +5,6 @@
 > Shipped sections are removed automatically by `bin/release`.
 
 
-## 0.3.0 — Observability & Ops
-
-- Rake tasks (`webhook_outbox:retry_failed`, `webhook_outbox:list_subscriptions`, `webhook_outbox:cleanup[days]`)
-
----
-
 ## 0.4.0 — Dashboard
 
 - Mountable engine UI (`mount RailsWebhookOutbox::Engine => "/admin/webhooks"`)

@@ -23,6 +23,7 @@ A Rails engine for sending outgoing webhooks with HMAC signing, ActiveJob-based 
 - [HMAC Signing](#hmac-signing)
 - [Secret Rotation](#secret-rotation)
 - [Circuit Breaker](#circuit-breaker)
+- [Rake Tasks](#rake-tasks)
 - [Usage](#usage)
 - [Manual Dispatch](#manual-dispatch)
 - [Testing](#testing)
@@ -347,6 +348,21 @@ Set `config.circuit_breaker_threshold` to `nil` or `0` to disable auto-disabling
 retries counts as one consecutive failure. Re-enable a tripped subscription with
 `sub.update!(active: true)`; `consecutive_failures` resets to zero immediately on reactivation, so a
 single subsequent failure won't instantly re-trip the breaker.
+
+[Back to top](#table-of-contents)
+
+## Rake Tasks
+
+```bash
+bin/rails webhook_outbox:retry_failed         # re-enqueue all failed deliveries for retry
+bin/rails webhook_outbox:list_subscriptions   # list subscriptions with status, events, and failure count
+bin/rails webhook_outbox:cleanup[7]           # delete delivered/failed deliveries older than N days
+```
+
+`retry_failed` resets each failed delivery to `pending` and enqueues a `DeliveryJob`; deliveries
+whose subscription has since been disabled are skipped by the job itself, not by the task.
+`cleanup[days]` requires a positive integer argument and only removes deliveries in a terminal
+state (`delivered` or `failed`) — `pending` deliveries are never deleted.
 
 [Back to top](#table-of-contents)
 
