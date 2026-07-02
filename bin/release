@@ -42,6 +42,13 @@ sed -i '' "s/VERSION = \".*\"/VERSION = \"$VERSION\"/" "$VERSION_FILE"
 echo "==> Updating Gemfile.lock..."
 bundle install --quiet
 
+if compgen -G "gemfiles/*.gemfile" > /dev/null; then
+  echo "==> Updating gemfiles/*.gemfile.lock..."
+  for gemfile in gemfiles/*.gemfile; do
+    BUNDLE_GEMFILE="$gemfile" bundle install --quiet
+  done
+fi
+
 echo "==> Updating CHANGELOG..."
 TODAY=$(date +%Y-%m-%d)
 # Rename [Unreleased] heading to the new version + date
@@ -71,6 +78,7 @@ fi
 echo "==> Committing release..."
 git add "$VERSION_FILE" Gemfile.lock CHANGELOG.md
 [[ -f ROADMAP.md ]] && git add ROADMAP.md
+compgen -G "gemfiles/*.gemfile.lock" > /dev/null && git add gemfiles/*.gemfile.lock
 git commit -m "Release $TAG"
 
 echo "==> Tagging $TAG..."
