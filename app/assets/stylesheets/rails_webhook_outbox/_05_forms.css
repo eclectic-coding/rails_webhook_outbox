@@ -1,0 +1,42 @@
+.rwo-form { max-width: 480px; }
+
+.rwo-field { margin-bottom: 1rem; }
+
+.rwo-field label { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-bottom: 0.3rem; }
+
+.rwo-input, .rwo-select {
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+}
+
+.rwo-checkbox-group { display: flex; flex-direction: column; gap: 0.4rem; }
+.rwo-checkbox-label { display: flex; align-items: center; gap: 0.4rem; font-weight: 400; text-transform: none; letter-spacing: normal; }
+
+.rwo-btn, .rwo-btn-small, .rwo-btn-danger, .rwo-btn-reset {
+  display: inline-block;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.rwo-btn { background: var(--accent); color: var(--accent-text); padding: 0.55rem 1rem; }
+.rwo-btn-small { background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 0.35rem 0.7rem; font-size: 12px; }
+.rwo-btn-danger { background: var(--danger); color: #fff; padding: 0.55rem 1rem; }
+.rwo-btn-reset { background: transparent; color: var(--muted); padding: 0.55rem 0.75rem; }
+
+.rwo-secret {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.rwo-secret-display { font-size: 14px; }

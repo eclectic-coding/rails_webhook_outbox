@@ -1,0 +1,88 @@
+.rwo-nav {
+  display: flex;
+  gap: 1.5rem;
+  padding: 1rem 2rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.rwo-nav-link {
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.rwo-nav-link:hover { color: var(--accent); }
+
+.rwo-main { padding: 2rem; max-width: 1100px; margin: 0 auto; }
+
+.rwo-header { margin-bottom: 1.5rem; }
+
+.rwo-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.rwo-section-title { margin: 1.5rem 0 0.75rem; font-size: 16px; }
+
+.rwo-back { display: inline-block; margin-bottom: 1rem; font-size: 13px; }
+
+.rwo-empty { color: var(--muted); padding: 1rem 0; }
+
+.rwo-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.rwo-stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1rem;
+}
+
+.rwo-stat-label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+.rwo-stat-value { font-size: 28px; font-weight: 700; }
+
+.rwo-detail {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.rwo-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+}
+
+.rwo-detail-label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+.rwo-detail-value { font-size: 15px; }
+
+.rwo-code-block {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.rwo-event {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}

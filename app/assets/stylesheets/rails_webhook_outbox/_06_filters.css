@@ -1,0 +1,13 @@
+.rwo-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.rwo-filters .rwo-field { margin-bottom: 0; min-width: 140px; }

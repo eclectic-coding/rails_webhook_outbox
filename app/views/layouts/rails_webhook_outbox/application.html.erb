@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RailsWebhookOutbox</title>
+  <link rel="icon" href="data:,">
+  <%= inline_styles %>
+  <%= javascript_importmap_tags "rails_webhook_outbox" %>
+</head>
+<body>
+  <nav class="rwo-nav">
+    <%= link_to "Overview", root_path, class: "rwo-nav-link" %>
+    <%= link_to "Subscriptions", subscriptions_path, class: "rwo-nav-link" %>
+    <%= link_to "Deliveries", deliveries_path, class: "rwo-nav-link" %>
+    <%= link_to "Events", events_path, class: "rwo-nav-link" %>
+  </nav>
+  <main class="rwo-main">
+    <%= yield %>
+  </main>
+</body>
+</html>

@@ -1,0 +1,19 @@
+.rwo-badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.rwo-badge--delivered { background: var(--success-bg); color: var(--success-text); }
+.rwo-badge--pending    { background: var(--warning-bg); color: var(--warning-text); }
+.rwo-badge--failed     { background: var(--danger-bg);  color: var(--danger-text); }
+
+.rwo-alert {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
