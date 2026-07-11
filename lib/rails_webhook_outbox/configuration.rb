@@ -6,7 +6,8 @@ module RailsWebhookOutbox
     attr_accessor :events, :signing_algorithm, :signing_header,
                   :max_retries, :retry_backoff, :request_timeout,
                   :delivery_job_queue, :max_payload_size, :test_mode,
-                  :secret_rotation_grace_period, :circuit_breaker_threshold
+                  :secret_rotation_grace_period, :circuit_breaker_threshold,
+                  :dashboard_enabled
 
     def initialize
       @events = []
@@ -20,6 +21,7 @@ module RailsWebhookOutbox
       @test_mode = false
       @secret_rotation_grace_period = 24.hours
       @circuit_breaker_threshold = 10
+      @dashboard_enabled = Rails.env.development?
     end
 
     def signing_algorithm=(value)
