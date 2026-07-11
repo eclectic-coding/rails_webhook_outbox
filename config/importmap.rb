@@ -1,0 +1,6 @@
+pin "@hotwired/turbo", to: "https://cdn.jsdelivr.net/npm/@hotwired/turbo@8.0.23/dist/turbo.es2017-esm.js"
+pin "@hotwired/stimulus", to: "https://cdn.jsdelivr.net/npm/@hotwired/stimulus@3.2.2/dist/stimulus.js"
+pin "rails_webhook_outbox",                                to: "rails_webhook_outbox/application.js"
+pin "rails_webhook_outbox/controllers",                    to: "rails_webhook_outbox/controllers/index.js"
+pin "rails_webhook_outbox/controllers/application",        to: "rails_webhook_outbox/controllers/application.js"
+pin "rails_webhook_outbox/controllers/secret_controller",  to: "rails_webhook_outbox/controllers/secret_controller.js"
