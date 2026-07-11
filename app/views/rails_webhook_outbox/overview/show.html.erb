@@ -1,0 +1,50 @@
+<div class="rwo-header">
+  <h1>Overview</h1>
+</div>
+
+<div class="rwo-stats-grid">
+  <div class="rwo-stat">
+    <div class="rwo-stat-label">Subscriptions</div>
+    <div class="rwo-stat-value"><%= link_to @subscription_count, subscriptions_path %></div>
+    <div class="rwo-muted"><%= @active_subscription_count %> active</div>
+  </div>
+  <div class="rwo-stat">
+    <div class="rwo-stat-label">Delivered</div>
+    <div class="rwo-stat-value"><%= link_to @delivery_counts.fetch("delivered", 0), deliveries_path(status: "delivered") %></div>
+  </div>
+  <div class="rwo-stat">
+    <div class="rwo-stat-label">Pending</div>
+    <div class="rwo-stat-value"><%= link_to @delivery_counts.fetch("pending", 0), deliveries_path(status: "pending") %></div>
+  </div>
+  <div class="rwo-stat">
+    <div class="rwo-stat-label">Failed</div>
+    <div class="rwo-stat-value"><%= link_to @delivery_counts.fetch("failed", 0), deliveries_path(status: "failed") %></div>
+  </div>
+</div>
+
+<h2 class="rwo-section-title">Recent Failures</h2>
+
+<% if @recent_failures.empty? %>
+  <p class="rwo-empty">No failed deliveries.</p>
+<% else %>
+  <table class="rwo-table">
+    <thead>
+      <tr>
+        <th>Event</th>
+        <th>Subscription</th>
+        <th>Attempts</th>
+        <th>Created</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @recent_failures.each do |delivery| %>
+        <tr>
+          <td><%= link_to delivery.event, delivery_path(delivery) %></td>
+          <td><%= delivery.subscription.url %></td>
+          <td class="rwo-muted"><%= delivery.attempts %></td>
+          <td class="rwo-muted"><%= delivery.created_at.strftime("%Y-%m-%d %H:%M:%S") %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% end %>
