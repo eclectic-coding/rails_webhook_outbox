@@ -1,0 +1,7 @@
+<tr id="<%= dom_id(delivery) %>">
+  <td><%= link_to delivery.event, delivery_path(delivery), class: "rwo-path" %></td>
+  <td class="rwo-muted"><%= delivery.subscription.url %></td>
+  <td><%= status_badge(delivery.status) %></td>
+  <td class="rwo-muted"><%= delivery.attempts %></td>
+  <td class="rwo-muted"><%= delivery.created_at.strftime("%Y-%m-%d %H:%M:%S") %></td>
+</tr>

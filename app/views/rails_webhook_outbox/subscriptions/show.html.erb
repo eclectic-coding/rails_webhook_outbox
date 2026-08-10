@@ -1,0 +1,49 @@
+<%= link_to "← All Subscriptions", subscriptions_path, class: "rwo-back" %>
+
+<div class="rwo-header rwo-header-row">
+  <h1><%= @subscription.url %></h1>
+  <%= link_to "Edit", edit_subscription_path(@subscription), class: "rwo-btn" %>
+</div>
+
+<% if params[:rotation_error] %>
+  <p class="rwo-alert">Secret rotation already in progress — the previous secret is still within its grace period.</p>
+<% end %>
+
+<div class="rwo-detail">
+  <div class="rwo-detail-grid">
+    <div class="rwo-detail-item">
+      <div class="rwo-detail-label">Status</div>
+      <div class="rwo-detail-value"><%= active_badge(@subscription.active?) %></div>
+    </div>
+    <div class="rwo-detail-item">
+      <div class="rwo-detail-label">Events</div>
+      <div class="rwo-detail-value"><%= @subscription.events.join(", ") %></div>
+    </div>
+    <div class="rwo-detail-item">
+      <div class="rwo-detail-label">Consecutive Failures</div>
+      <div class="rwo-detail-value"><%= @subscription.consecutive_failures %></div>
+    </div>
+    <div class="rwo-detail-item">
+      <div class="rwo-detail-label">Description</div>
+      <div class="rwo-detail-value"><%= @subscription.description.presence || "—" %></div>
+    </div>
+  </div>
+</div>
+
+<h2 class="rwo-section-title">Signing Secret</h2>
+
+<div class="rwo-secret" data-controller="secret" data-secret-value-value="<%= @subscription.secret %>">
+  <span class="rwo-secret-display rwo-monospace" data-secret-target="display"><%= masked_secret(@subscription.secret) %></span>
+  <button type="button" class="rwo-btn-small" data-action="click->secret#reveal" data-secret-target="revealButton">Reveal</button>
+  <button type="button" class="rwo-btn-small" data-action="click->secret#copy" data-secret-target="copyButton">Copy</button>
+  <span class="rwo-muted" hidden data-secret-target="copiedHint">Copied!</span>
+</div>
+
+<% if @subscription.previous_secret_active? %>
+  <p class="rwo-muted">Previous secret valid until <%= @subscription.previous_secret_expires_at.strftime("%Y-%m-%d %H:%M:%S") %>.</p>
+<% end %>
+
+<%= button_to "Rotate Secret", rotate_secret_subscription_path(@subscription),
+      method: :patch,
+      class: "rwo-btn-danger",
+      form: { data: { turbo_confirm: "Rotate the signing secret? Subscribers must be updated within the grace period." } } %>

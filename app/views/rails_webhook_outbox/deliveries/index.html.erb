@@ -1,0 +1,62 @@
+<div class="rwo-header">
+  <h1>Deliveries</h1>
+</div>
+
+<%= form_with url: deliveries_path, method: :get, local: true, class: "rwo-filters" do %>
+  <div class="rwo-field">
+    <%= label_tag :status, "Status" %>
+    <%= select_tag :status,
+          options_for_select([["All", ""]] + RailsWebhookOutbox::Delivery.statuses.keys.map { |s| [s.capitalize, s] }, @status),
+          class: "rwo-select" %>
+  </div>
+
+  <div class="rwo-field">
+    <%= label_tag :event, "Event" %>
+    <%= select_tag :event,
+          options_for_select([["All", ""]] + RailsWebhookOutbox.config.events, @event),
+          class: "rwo-select" %>
+  </div>
+
+  <div class="rwo-field">
+    <%= label_tag :from, "From" %>
+    <%= date_field_tag :from, @from, class: "rwo-input" %>
+  </div>
+
+  <div class="rwo-field">
+    <%= label_tag :to, "To" %>
+    <%= date_field_tag :to, @to, class: "rwo-input" %>
+  </div>
+
+  <%= submit_tag "Filter", class: "rwo-btn" %>
+  <%= link_to "Reset", deliveries_path, class: "rwo-btn-reset" %>
+<% end %>
+
+<%= turbo_stream_from "rails_webhook_outbox_deliveries" %>
+
+<% if @deliveries.empty? %>
+  <p class="rwo-empty">No deliveries found.</p>
+<% else %>
+  <table class="rwo-table">
+    <thead>
+      <tr>
+        <th>Event</th>
+        <th>Subscription</th>
+        <th>Status</th>
+        <th>Attempts</th>
+        <th>Created</th>
+      </tr>
+    </thead>
+    <tbody>
+      <%= render partial: "row", collection: @deliveries, as: :delivery %>
+    </tbody>
+  </table>
+
+  <div class="rwo-pagination">
+    <% if @page > 1 %>
+      <%= link_to "← Previous", deliveries_path(request.query_parameters.merge(page: @page - 1)), class: "rwo-btn-small" %>
+    <% end %>
+    <% if @page * RailsWebhookOutbox::DeliveriesController::PER_PAGE < @total_count %>
+      <%= link_to "Next →", deliveries_path(request.query_parameters.merge(page: @page + 1)), class: "rwo-btn-small" %>
+    <% end %>
+  </div>
+<% end %>

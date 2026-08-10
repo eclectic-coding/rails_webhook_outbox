@@ -23,6 +23,7 @@ A Rails engine for sending outgoing webhooks with HMAC signing, ActiveJob-based 
 - [HMAC Signing](#hmac-signing)
 - [Secret Rotation](#secret-rotation)
 - [Circuit Breaker](#circuit-breaker)
+- [Dashboard](#dashboard)
 - [Rake Tasks](#rake-tasks)
 - [Usage](#usage)
 - [Manual Dispatch](#manual-dispatch)
@@ -73,6 +74,7 @@ RailsWebhookOutbox.configure do |config|
   config.max_payload_size   = 65_536  # bytes; set to nil or 0 to disable
   config.secret_rotation_grace_period = 24.hours
   config.circuit_breaker_threshold = 10  # consecutive permanent failures before auto-disabling; nil or 0 disables
+  config.dashboard_enabled = true        # enable the mountable dashboard UI; defaults to true in development
 end
 ```
 
@@ -348,6 +350,37 @@ Set `config.circuit_breaker_threshold` to `nil` or `0` to disable auto-disabling
 retries counts as one consecutive failure. Re-enable a tripped subscription with
 `sub.update!(active: true)`; `consecutive_failures` resets to zero immediately on reactivation, so a
 single subsequent failure won't instantly re-trip the breaker.
+
+[Back to top](#table-of-contents)
+
+## Dashboard
+
+Mount the engine to get a browser dashboard for managing subscriptions and browsing deliveries:
+
+```ruby
+# config/routes.rb
+mount RailsWebhookOutbox::Engine => "/admin/webhooks"
+```
+
+The dashboard is gated by `config.dashboard_enabled` (default: `true` in development, `false`
+elsewhere) — set it explicitly to control access, and put the mount behind your own
+authentication/authorization in `routes.rb` (e.g. `constraints AdminConstraint.new do ... end`) since
+the engine itself has no concept of users.
+
+Pages:
+
+| Page | Purpose |
+|------|---------|
+| `/` | Overview — subscription/delivery counts, recent failures |
+| `/subscriptions` | List, create, and edit subscriptions; enable/disable with one click |
+| `/subscriptions/:id` | Detail — masked signing secret with reveal/copy, rotate-secret button |
+| `/deliveries` | Filterable delivery log (status, event, date range) with live status updates via Turbo Streams |
+| `/deliveries/:id` | Detail — payload, response, and a manual retry button for failed deliveries |
+| `/events` | Registered events with subscriber counts and a recent payload example |
+
+The UI ships its own assets (CSS inlined, JS via importmap) and follows the system light/dark color
+scheme automatically — no asset pipeline configuration is required beyond what a standard Rails 7+
+app already has.
 
 [Back to top](#table-of-contents)
 

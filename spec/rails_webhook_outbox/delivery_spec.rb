@@ -94,6 +94,27 @@ RSpec.describe RailsWebhookOutbox::Delivery do
     end
   end
 
+  describe "turbo broadcasts" do
+    before { delivery.save! }
+
+    it "broadcasts a row replace to the shared deliveries stream on update" do
+      assert_broadcasts("rails_webhook_outbox_deliveries", 1) do
+        delivery.update!(status: :delivered)
+      end
+    end
+
+    it "broadcasts a detail replace to the delivery's own stream on update" do
+      assert_broadcasts(delivery.to_gid_param, 1) do
+        delivery.update!(status: :delivered)
+      end
+    end
+
+    it "does not broadcast on create" do
+      new_delivery = described_class.new(subscription: subscription, event: "order.created", payload: { id: 2 })
+      assert_no_broadcasts("rails_webhook_outbox_deliveries") { new_delivery.save! }
+    end
+  end
+
   describe "scopes" do
     before { delivery.save! }
 

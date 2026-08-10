@@ -1,0 +1,2 @@
+<%= turbo_stream.replace dom_id(@delivery), partial: "rails_webhook_outbox/deliveries/row", locals: { delivery: @delivery } %>
+<%= turbo_stream.replace dom_id(@delivery, :detail), partial: "rails_webhook_outbox/deliveries/detail", locals: { delivery: @delivery } %>

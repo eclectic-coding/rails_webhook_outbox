@@ -1,0 +1,45 @@
+<div id="<%= dom_id(delivery, :detail) %>">
+  <div class="rwo-header rwo-header-row">
+    <h1><%= delivery.event %></h1>
+    <%= status_badge(delivery.status) %>
+  </div>
+
+  <div class="rwo-detail-grid">
+    <div class="rwo-detail-item">
+      <div class="rwo-detail-label">Subscription</div>
+      <div class="rwo-detail-value"><%= link_to delivery.subscription.url, subscription_path(delivery.subscription) %></div>
+    </div>
+    <div class="rwo-detail-item">
+      <div class="rwo-detail-label">Attempts</div>
+      <div class="rwo-detail-value"><%= delivery.attempts %></div>
+    </div>
+    <div class="rwo-detail-item">
+      <div class="rwo-detail-label">Response Code</div>
+      <div class="rwo-detail-value"><%= delivery.response_code || "—" %></div>
+    </div>
+    <div class="rwo-detail-item">
+      <div class="rwo-detail-label">Delivered At</div>
+      <div class="rwo-detail-value"><%= delivery.delivered_at&.strftime("%Y-%m-%d %H:%M:%S") || "—" %></div>
+    </div>
+    <div class="rwo-detail-item">
+      <div class="rwo-detail-label">Next Retry At</div>
+      <div class="rwo-detail-value"><%= delivery.next_retry_at&.strftime("%Y-%m-%d %H:%M:%S") || "—" %></div>
+    </div>
+    <div class="rwo-detail-item">
+      <div class="rwo-detail-label">Created At</div>
+      <div class="rwo-detail-value"><%= delivery.created_at.strftime("%Y-%m-%d %H:%M:%S") %></div>
+    </div>
+  </div>
+
+  <h2 class="rwo-section-title">Payload</h2>
+  <pre class="rwo-monospace rwo-code-block"><%= JSON.pretty_generate(delivery.payload) %></pre>
+
+  <% if delivery.response_body.present? %>
+    <h2 class="rwo-section-title">Response Body</h2>
+    <pre class="rwo-monospace rwo-code-block"><%= delivery.response_body %></pre>
+  <% end %>
+
+  <% if delivery.failed? %>
+    <%= button_to "Retry Delivery", retry_delivery_path(delivery), class: "rwo-btn" %>
+  <% end %>
+</div>

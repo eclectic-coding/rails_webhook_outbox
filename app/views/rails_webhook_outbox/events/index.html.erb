@@ -1,0 +1,22 @@
+<div class="rwo-header">
+  <h1>Registered Events</h1>
+</div>
+
+<% if @events.empty? %>
+  <p class="rwo-empty">No events registered. Set <code>config.events</code> in your initializer.</p>
+<% else %>
+  <% @events.each do |event| %>
+    <div class="rwo-event">
+      <div class="rwo-header-row">
+        <h2 class="rwo-section-title"><%= event[:name] %></h2>
+        <span class="rwo-muted"><%= event[:subscriber_count] %> active subscriber<%= "s" unless event[:subscriber_count] == 1 %></span>
+      </div>
+
+      <% if event[:example] %>
+        <pre class="rwo-monospace rwo-code-block"><%= JSON.pretty_generate(event[:example]) %></pre>
+      <% else %>
+        <p class="rwo-muted">No deliveries yet for this event.</p>
+      <% end %>
+    </div>
+  <% end %>
+<% end %>

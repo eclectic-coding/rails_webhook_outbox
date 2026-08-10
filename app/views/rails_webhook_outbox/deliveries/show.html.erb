@@ -1,0 +1,5 @@
+<%= link_to "← All Deliveries", deliveries_path, class: "rwo-back" %>
+
+<%= turbo_stream_from @delivery %>
+
+<%= render "detail", delivery: @delivery %>

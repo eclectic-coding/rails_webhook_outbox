@@ -1,0 +1,49 @@
+<%= form_with model: subscription, url: subscription.persisted? ? subscription_path(subscription) : subscriptions_path, local: true, class: "rwo-form" do |form| %>
+  <% if subscription.errors.any? %>
+    <div class="rwo-alert">
+      <ul>
+        <% subscription.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="rwo-field">
+    <%= form.label :url %>
+    <%= form.text_field :url, class: "rwo-input", placeholder: "https://example.com/webhooks" %>
+  </div>
+
+  <div class="rwo-field">
+    <%= form.label :events %>
+    <% if RailsWebhookOutbox.config.events.any? %>
+      <div class="rwo-checkbox-group">
+        <%= hidden_field_tag "subscription[events][]", "", id: nil %>
+        <% RailsWebhookOutbox.config.events.each do |event| %>
+          <label class="rwo-checkbox-label">
+            <%= check_box_tag "subscription[events][]", event, subscription.events.include?(event), id: nil %>
+            <%= event %>
+          </label>
+        <% end %>
+      </div>
+    <% else %>
+      <%= form.text_field :events, name: "subscription[events]", value: subscription.events.join(", "), class: "rwo-input", placeholder: "order.created, order.updated" %>
+    <% end %>
+  </div>
+
+  <div class="rwo-field">
+    <%= form.label :description %>
+    <%= form.text_field :description, class: "rwo-input" %>
+  </div>
+
+  <% if subscription.persisted? %>
+    <div class="rwo-field">
+      <label class="rwo-checkbox-label">
+        <%= form.check_box :active %>
+        Active
+      </label>
+    </div>
+  <% end %>
+
+  <%= form.submit subscription.persisted? ? "Update Subscription" : "Create Subscription", class: "rwo-btn" %>
+<% end %>
