@@ -13,4 +13,9 @@ RuboCop::RakeTask.new(:lint)
 Bundler::Audit::Task.new
 RSpec::Core::RakeTask.new(:spec)
 
-task default: [:lint, :'bundle:audit:update', 'bundle:audit:check', :spec]
+desc "Run Brakeman static security analysis"
+task :brakeman do
+  sh "bundle exec brakeman -q --no-pager --force-scan --skip-files spec/ ."
+end
+
+task default: [:lint, :'bundle:audit:update', 'bundle:audit:check', :brakeman, :spec]
