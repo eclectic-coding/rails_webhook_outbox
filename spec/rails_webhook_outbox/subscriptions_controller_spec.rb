@@ -78,7 +78,7 @@ RSpec.describe "RailsWebhookOutbox::Subscriptions", type: :request do
         post "/rails_webhook_outbox/subscriptions", params: { subscription: { url: "", events: ["order.created"] } }
       end.not_to change(RailsWebhookOutbox::Subscription, :count)
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(422)
       expect(response.body).to include("can&#39;t be blank")
     end
   end
@@ -114,7 +114,7 @@ RSpec.describe "RailsWebhookOutbox::Subscriptions", type: :request do
         subscription: { url: "" }
       }
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(422)
     end
   end
 
