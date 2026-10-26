@@ -18,7 +18,7 @@ module RailsWebhookOutbox
       if @subscription.save
         redirect_to subscription_path(@subscription)
       else
-        render :new, status: :unprocessable_entity
+        render :new, status: 422
       end
     end
 
@@ -32,7 +32,7 @@ module RailsWebhookOutbox
       if @subscription.update(subscription_params)
         redirect_to subscription_path(@subscription)
       else
-        render :edit, status: :unprocessable_entity
+        render :edit, status: 422
       end
     end
 
