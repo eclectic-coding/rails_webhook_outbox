@@ -1,6 +1,6 @@
 module RailsWebhookOutbox
   class BaseController < ActionController::Base
-    protect_from_forgery with: :null_session
+    protect_from_forgery with: :exception
     layout "rails_webhook_outbox/application"
     helper RailsWebhookOutbox::ApplicationHelper
 

@@ -9,6 +9,7 @@ gemspec
 group :development do
   gem "rubocop-rails-omakase", require: false
   gem "bundler-audit"
+  gem "brakeman", require: false
   gem "solid_queue"
 end
 

@@ -2,7 +2,7 @@ module RailsWebhookOutbox
   class Subscription < ApplicationRecord
     self.table_name = "webhook_outbox_subscriptions"
 
-    URL_FORMAT = /\Ahttps?:\/\/.+/i
+    URL_FORMAT = /\Ahttps?:\/\/.+\z/i
 
     attribute :active, :boolean, default: true
 
