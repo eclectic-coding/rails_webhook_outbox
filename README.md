@@ -393,7 +393,7 @@ Pages:
 | `/subscriptions` | List, create, and edit subscriptions; enable/disable with one click |
 | `/subscriptions/:id` | Detail — masked signing secret with reveal/copy, rotate-secret button |
 | `/deliveries` | Filterable delivery log (status, event, date range) with live status updates via Turbo Streams |
-| `/deliveries/:id` | Detail — payload, response, and a manual retry button for failed deliveries |
+| `/deliveries/:id` | Detail — attempt timeline, payload, response, and a manual retry button for failed deliveries |
 | `/events` | Registered events with subscriber counts and a recent payload example |
 
 The UI ships its own assets (CSS inlined, JS via importmap) and follows the system light/dark color

@@ -31,6 +31,8 @@
     </div>
   </div>
 
+  <%= render "rails_webhook_outbox/deliveries/timeline", delivery: delivery %>
+
   <h2 class="rwo-section-title">Payload</h2>
   <pre class="rwo-monospace rwo-code-block"><%= JSON.pretty_generate(delivery.payload) %></pre>
 

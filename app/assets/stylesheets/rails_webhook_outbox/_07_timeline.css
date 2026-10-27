@@ -1,0 +1,31 @@
+.rwo-timeline {
+  list-style: none;
+  margin-left: 6px;
+  border-left: 2px solid var(--border);
+}
+
+.rwo-timeline-item {
+  position: relative;
+  padding: 0 0 1rem 1.25rem;
+}
+
+.rwo-timeline-item::before {
+  content: "";
+  position: absolute;
+  left: -7px;
+  top: 4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--bg);
+  background: var(--muted);
+}
+
+.rwo-timeline-item--delivered::before { background: var(--success-text); }
+.rwo-timeline-item--failed::before    { background: var(--danger); }
+.rwo-timeline-item--scheduled::before { background: var(--warning-text); }
+
+.rwo-timeline-title { font-weight: 600; }
+
+.rwo-timeline-response { margin-top: 0.25rem; }
+.rwo-timeline-response summary { cursor: pointer; }
