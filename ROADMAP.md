@@ -10,7 +10,6 @@
 Tracked in [#12](https://github.com/eclectic-coding/rails_webhook_outbox/issues/12); one PR per item.
 
 - Delivery detail timeline — chronological attempt history (needs per-attempt data; `Delivery` only stores the latest attempt today)
-- Live overview — Turbo Stream updates for the overview counts and recent failures
 
 ---
 

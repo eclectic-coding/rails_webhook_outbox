@@ -8,6 +8,24 @@ RSpec.describe RailsWebhookOutbox::Subscription do
     )
   end
 
+  describe "overview broadcasts" do
+    let(:stream) { RailsWebhookOutbox::Overview::STREAM }
+
+    it "broadcasts the stats on create" do
+      assert_broadcasts(stream, 1) { subscription.save! }
+    end
+
+    it "broadcasts the stats on update" do
+      subscription.save!
+      assert_broadcasts(stream, 1) { subscription.update!(active: false) }
+    end
+
+    it "broadcasts the stats on destroy" do
+      subscription.save!
+      assert_broadcasts(stream, 1) { subscription.destroy! }
+    end
+  end
+
   describe "validations" do
     it "is valid with a url and events" do
       expect(subscription).to be_valid

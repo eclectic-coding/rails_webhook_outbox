@@ -1,0 +1,29 @@
+<div id="<%= RailsWebhookOutbox::Overview::FAILURES_TARGET %>">
+  <h2 class="rwo-section-title">Recent Failures</h2>
+
+  <% failures = overview.recent_failures %>
+  <% if failures.empty? %>
+    <p class="rwo-empty">No failed deliveries.</p>
+  <% else %>
+    <table class="rwo-table">
+      <thead>
+        <tr>
+          <th>Event</th>
+          <th>Subscription</th>
+          <th>Attempts</th>
+          <th>Created</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% failures.each do |delivery| %>
+          <tr>
+            <td><%= link_to delivery.event, delivery_path(delivery) %></td>
+            <td><%= delivery.subscription.url %></td>
+            <td class="rwo-muted"><%= delivery.attempts %></td>
+            <td class="rwo-muted"><%= delivery.created_at.strftime("%Y-%m-%d %H:%M:%S") %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% end %>
+</div>

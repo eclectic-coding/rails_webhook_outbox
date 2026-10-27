@@ -1,0 +1,19 @@
+<div id="<%= RailsWebhookOutbox::Overview::STATS_TARGET %>" class="rwo-stats-grid">
+  <div class="rwo-stat">
+    <div class="rwo-stat-label">Subscriptions</div>
+    <div class="rwo-stat-value"><%= link_to overview.subscription_count, subscriptions_path %></div>
+    <div class="rwo-muted"><%= overview.active_subscription_count %> active</div>
+  </div>
+  <div class="rwo-stat">
+    <div class="rwo-stat-label">Delivered</div>
+    <div class="rwo-stat-value"><%= link_to overview.delivery_count(:delivered), deliveries_path(status: "delivered") %></div>
+  </div>
+  <div class="rwo-stat">
+    <div class="rwo-stat-label">Pending</div>
+    <div class="rwo-stat-value"><%= link_to overview.delivery_count(:pending), deliveries_path(status: "pending") %></div>
+  </div>
+  <div class="rwo-stat">
+    <div class="rwo-stat-label">Failed</div>
+    <div class="rwo-stat-value"><%= link_to overview.delivery_count(:failed), deliveries_path(status: "failed") %></div>
+  </div>
+</div>
