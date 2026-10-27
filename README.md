@@ -30,6 +30,7 @@ A Rails engine for sending outgoing webhooks with HMAC signing, ActiveJob-based 
 - [Testing](#testing)
 - [Development](#development)
   - [Dummy App](#dummy-app)
+- [Upgrading](#upgrading)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -152,8 +153,8 @@ delivery.delivery_attempts.each do |attempt|
 end
 ```
 
-Attempts are deleted with their delivery, including by `webhook_outbox:cleanup`. If you are upgrading
-from an earlier version, run `rails db:migrate` to create the `webhook_outbox_delivery_attempts` table.
+Attempts are deleted with their delivery, including by `webhook_outbox:cleanup`. Upgrading from a
+version before 0.4.0 requires a migration — see [Upgrading](#upgrading).
 
 [Back to top](#table-of-contents)
 
@@ -581,6 +582,16 @@ The seed data creates a subscription pointing to `http://localhost:4000/webhooks
 ```ruby
 RailsWebhookOutbox::Subscription.first.update!(url: "https://webhook.site/your-id")
 ```
+
+[Back to top](#table-of-contents)
+
+## Upgrading
+
+Some releases need action from you, such as a database migration. Read [UPGRADING.md](UPGRADING.md)
+before updating the gem, and check the **BREAKING** entries in the [CHANGELOG](CHANGELOG.md).
+
+**0.4.0 requires a new table** (`webhook_outbox_delivery_attempts`): run `bin/rails db:migrate`
+before deploying. See [Upgrading to 0.4.0](UPGRADING.md#upgrading-to-040).
 
 [Back to top](#table-of-contents)
 
