@@ -95,6 +95,77 @@ RSpec.describe "RailsWebhookOutbox::Deliveries", type: :request do
       get "/rails_webhook_outbox/deliveries/#{delivery.id}"
       expect(response.body).not_to include("Retry Delivery")
     end
+
+    describe "timeline" do
+      it "always shows when the delivery was queued" do
+        get "/rails_webhook_outbox/deliveries/#{delivery.id}"
+        expect(response.body).to include("Timeline", "Queued", delivery.created_at.strftime("%Y-%m-%d %H:%M:%S"))
+      end
+
+      it "lists each attempt in order with its outcome, response code, and duration" do
+        delivery.delivery_attempts.create!(attempt_number: 1, outcome: :failed, response_code: 503, duration_ms: 182)
+        delivery.delivery_attempts.create!(attempt_number: 2, outcome: :delivered, response_code: 200, duration_ms: 45)
+        get "/rails_webhook_outbox/deliveries/#{delivery.id}"
+
+        body = response.body
+        expect(body).to include("Attempt 1", "HTTP 503", "182 ms", "Attempt 2", "HTTP 200", "45 ms")
+        expect(body.index("Attempt 1")).to be < body.index("Attempt 2")
+        expect(body).to include("rwo-timeline-item--failed", "rwo-timeline-item--delivered")
+      end
+
+      it "shows an attempt's response body, escaped" do
+        delivery.delivery_attempts.create!(attempt_number: 1, outcome: :failed, response_code: 500, response_body: "<b>boom</b>")
+        get "/rails_webhook_outbox/deliveries/#{delivery.id}"
+
+        expect(response.body).to include("Response body", "&lt;b&gt;boom&lt;/b&gt;")
+        expect(response.body).not_to include("<b>boom</b>")
+      end
+
+      it "shows a dash for a missing response code and omits a missing duration" do
+        delivery.delivery_attempts.create!(attempt_number: 1, outcome: :failed)
+        get "/rails_webhook_outbox/deliveries/#{delivery.id}"
+
+        expect(response.body).to include("HTTP —")
+        expect(response.body).not_to include(" ms")
+        expect(response.body).not_to include("Response body")
+      end
+
+      it "shows the scheduled retry for a pending delivery" do
+        delivery.update!(next_retry_at: Time.utc(2026, 11, 1, 12, 30, 0))
+        get "/rails_webhook_outbox/deliveries/#{delivery.id}"
+
+        expect(response.body).to include("Retry scheduled", "2026-11-01 12:30:00")
+      end
+
+      it "does not show a scheduled retry once the delivery has failed" do
+        delivery.update!(status: :failed, next_retry_at: Time.utc(2026, 11, 1, 12, 30, 0))
+        get "/rails_webhook_outbox/deliveries/#{delivery.id}"
+
+        expect(response.body).not_to include("Retry scheduled")
+      end
+
+      it "does not show a scheduled retry for a pending delivery without a retry time" do
+        get "/rails_webhook_outbox/deliveries/#{delivery.id}"
+        expect(response.body).not_to include("Retry scheduled")
+      end
+
+      it "explains missing history for a delivery attempted before attempts were recorded" do
+        delivery.update!(status: :delivered, attempts: 2)
+        get "/rails_webhook_outbox/deliveries/#{delivery.id}"
+
+        expect(response.body).to include("Attempt history is recorded from version 0.4.0")
+      end
+
+      it "omits the missing-history note when attempts are recorded or none were made" do
+        get "/rails_webhook_outbox/deliveries/#{delivery.id}"
+        expect(response.body).not_to include("Attempt history is recorded")
+
+        delivery.update!(attempts: 1)
+        delivery.delivery_attempts.create!(attempt_number: 1, outcome: :delivered, response_code: 200)
+        get "/rails_webhook_outbox/deliveries/#{delivery.id}"
+        expect(response.body).not_to include("Attempt history is recorded")
+      end
+    end
   end
 
   describe "POST /rails_webhook_outbox/deliveries/:id/retry" do

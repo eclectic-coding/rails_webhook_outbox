@@ -1,0 +1,41 @@
+<% attempts = delivery.delivery_attempts.to_a %>
+
+<h2 class="rwo-section-title">Timeline</h2>
+
+<ol class="rwo-timeline">
+  <li class="rwo-timeline-item">
+    <div class="rwo-timeline-title">Queued</div>
+    <div class="rwo-muted"><%= delivery.created_at.strftime("%Y-%m-%d %H:%M:%S") %></div>
+  </li>
+
+  <% attempts.each do |attempt| %>
+    <li class="rwo-timeline-item rwo-timeline-item--<%= attempt.outcome %>">
+      <div class="rwo-timeline-title">
+        Attempt <%= attempt.attempt_number %>
+        <%= status_badge(attempt.outcome) %>
+      </div>
+      <div class="rwo-muted">
+        <%= attempt.created_at.strftime("%Y-%m-%d %H:%M:%S") %>
+        &middot; HTTP <%= attempt.response_code || "—" %>
+        <% if attempt.duration_ms %>&middot; <%= attempt.duration_ms %> ms<% end %>
+      </div>
+      <% if attempt.response_body.present? %>
+        <details class="rwo-timeline-response">
+          <summary class="rwo-muted">Response body</summary>
+          <pre class="rwo-monospace rwo-code-block"><%= attempt.response_body %></pre>
+        </details>
+      <% end %>
+    </li>
+  <% end %>
+
+  <% if delivery.pending? && delivery.next_retry_at %>
+    <li class="rwo-timeline-item rwo-timeline-item--scheduled">
+      <div class="rwo-timeline-title">Retry scheduled</div>
+      <div class="rwo-muted"><%= delivery.next_retry_at.strftime("%Y-%m-%d %H:%M:%S") %></div>
+    </li>
+  <% end %>
+</ol>
+
+<% if attempts.empty? && delivery.attempts.positive? %>
+  <p class="rwo-muted">Attempt history is recorded from version 0.4.0; this delivery was attempted before then.</p>
+<% end %>

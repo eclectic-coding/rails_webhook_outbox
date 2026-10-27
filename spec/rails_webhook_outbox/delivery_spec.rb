@@ -127,6 +127,13 @@ RSpec.describe RailsWebhookOutbox::Delivery do
       expect(messages.join).to include(%(target="#{ActionView::RecordIdentifier.dom_id(delivery, :detail)}"))
       expect(messages.join).to include("Delivered")
     end
+
+    it "includes the attempt timeline in the detail broadcast" do
+      delivery.delivery_attempts.create!(attempt_number: 1, outcome: :delivered, response_code: 200)
+      messages = capture_broadcasts(delivery.to_gid_param) { delivery.update!(status: :delivered) }
+
+      expect(messages.join).to include("Timeline", "Attempt 1", "HTTP 200")
+    end
   end
 
   describe "overview broadcasts" do
