@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Mountable dashboard — mount `RailsWebhookOutbox::Engine` (e.g. at `/admin/webhooks`) for a browser UI, gated by `config.dashboard_enabled` (default: `true` in development only). Ships its own CSS (inlined) and JS (importmap + Turbo/Stimulus), and follows the system light/dark color scheme. Pages: overview (subscription/delivery counts, recent failures), subscriptions (list, create, edit, one-click enable/disable, masked signing secret with reveal/copy, rotate secret), deliveries (filter by status, event, and date range; paginated), delivery detail (payload, response, manual retry for failed deliveries), and registered events (subscriber counts and a recent payload example).
+- Live delivery updates — `Delivery` broadcasts Turbo Stream replacements on update, so the delivery log rows and the delivery detail view refresh without a page reload; the manual retry button responds with Turbo Stream too.
+
 ## [0.3.0] - 2026-07-02
 
 ### Added
