@@ -5,11 +5,6 @@
 > Shipped sections are removed automatically by `bin/release`.
 
 
-## 0.4.0 — Dashboard
-
-Tracked in [#12](https://github.com/eclectic-coding/rails_webhook_outbox/issues/12); all items shipped.
-
----
 
 ## 0.5.0 — Polish
 

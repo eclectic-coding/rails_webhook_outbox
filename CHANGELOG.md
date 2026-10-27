@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-27
+
 ### Added
 - Mountable dashboard — mount `RailsWebhookOutbox::Engine` (e.g. at `/admin/webhooks`) for a browser UI, gated by `config.dashboard_enabled` (default: `true` in development only). Ships its own CSS (inlined) and JS (importmap + Turbo/Stimulus), and follows the system light/dark color scheme. Pages: overview (subscription/delivery counts, recent failures), subscriptions (list, create, edit, one-click enable/disable, masked signing secret with reveal/copy, rotate secret), deliveries (filter by status, event, and date range; paginated), delivery detail (payload, response, manual retry for failed deliveries), and registered events (subscriber counts and a recent payload example).
 - Live delivery updates — `Delivery` broadcasts Turbo Stream replacements on update, so the delivery log rows and the delivery detail view refresh without a page reload; the manual retry button responds with Turbo Stream too.
@@ -74,7 +76,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - `spec/rails_helper.rb` — removed broken `require_relative '../config/environment'`; engine migration path now auto-appended and test DB auto-migrated
 
-[Unreleased]: https://github.com/eclectic-coding/rails_webhook_outbox/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/eclectic-coding/rails_webhook_outbox/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/eclectic-coding/rails_webhook_outbox/releases/tag/v0.4.0
 [0.3.0]: https://github.com/eclectic-coding/rails_webhook_outbox/releases/tag/v0.3.0
 [0.2.0]: https://github.com/eclectic-coding/rails_webhook_outbox/releases/tag/v0.2.0
 [0.1.0]: https://github.com/eclectic-coding/rails_webhook_outbox/releases/tag/v0.1.0
