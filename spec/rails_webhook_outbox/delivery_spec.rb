@@ -113,6 +113,20 @@ RSpec.describe RailsWebhookOutbox::Delivery do
       new_delivery = described_class.new(subscription: subscription, event: "order.created", payload: { id: 2 })
       assert_no_broadcasts("rails_webhook_outbox_deliveries") { new_delivery.save! }
     end
+
+    it "renders the row partial with its link into the shared stream broadcast" do
+      messages = capture_broadcasts("rails_webhook_outbox_deliveries") { delivery.update!(status: :delivered) }
+
+      expect(messages.join).to include(%(target="#{ActionView::RecordIdentifier.dom_id(delivery)}"))
+      expect(messages.join).to include(%(href="/rails_webhook_outbox/deliveries/#{delivery.id}"))
+    end
+
+    it "renders the detail partial into the delivery's own stream broadcast" do
+      messages = capture_broadcasts(delivery.to_gid_param) { delivery.update!(status: :delivered) }
+
+      expect(messages.join).to include(%(target="#{ActionView::RecordIdentifier.dom_id(delivery, :detail)}"))
+      expect(messages.join).to include("Delivered")
+    end
   end
 
   describe "overview broadcasts" do
