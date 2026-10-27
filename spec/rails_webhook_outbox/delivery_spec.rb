@@ -115,6 +115,32 @@ RSpec.describe RailsWebhookOutbox::Delivery do
     end
   end
 
+  describe "overview broadcasts" do
+    let(:stream) { RailsWebhookOutbox::Overview::STREAM }
+
+    it "broadcasts the stats and recent failures on create" do
+      new_delivery = described_class.new(subscription: subscription, event: "order.created", payload: { id: 2 })
+      assert_broadcasts(stream, 2) { new_delivery.save! }
+    end
+
+    it "broadcasts the stats and recent failures on update" do
+      delivery.save!
+      assert_broadcasts(stream, 2) { delivery.update!(status: :failed) }
+    end
+
+    it "broadcasts the stats and recent failures on destroy" do
+      delivery.save!
+      assert_broadcasts(stream, 2) { delivery.destroy! }
+    end
+
+    it "renders the new counts into the broadcast" do
+      delivery.save!
+      messages = capture_broadcasts(stream) { delivery.update!(status: :failed) }
+
+      expect(messages.join).to include("rwo-overview-stats", "rwo-overview-failures", "order.created")
+    end
+  end
+
   describe "scopes" do
     before { delivery.save! }
 

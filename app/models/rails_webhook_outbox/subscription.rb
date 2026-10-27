@@ -8,6 +8,7 @@ module RailsWebhookOutbox
 
     before_validation :generate_secret, on: :create
     before_save :reset_consecutive_failures_on_reactivation
+    after_commit :broadcast_overview_stats
 
     validates :url, presence: true, format: { with: URL_FORMAT, message: "must be a valid HTTP or HTTPS URL" }
     validates :secret, presence: true
@@ -65,6 +66,10 @@ module RailsWebhookOutbox
 
     def reset_consecutive_failures_on_reactivation
       self.consecutive_failures = 0 if active_changed?(from: false, to: true)
+    end
+
+    def broadcast_overview_stats
+      Overview.broadcast_stats
     end
   end
 end

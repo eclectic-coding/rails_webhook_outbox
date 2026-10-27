@@ -18,6 +18,7 @@ module RailsWebhookOutbox
 
     after_update_commit :broadcast_row_update
     after_update_commit :broadcast_detail_update
+    after_commit :broadcast_overview_update
 
     private
 
@@ -34,6 +35,11 @@ module RailsWebhookOutbox
       broadcast_replace_to self,
         target: dom_id(self, :detail),
         partial: "rails_webhook_outbox/deliveries/detail", locals: { delivery: self }
+    end
+
+    def broadcast_overview_update
+      Overview.broadcast_stats
+      Overview.broadcast_recent_failures
     end
   end
 end

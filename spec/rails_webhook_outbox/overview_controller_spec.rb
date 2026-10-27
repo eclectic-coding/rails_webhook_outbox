@@ -19,6 +19,12 @@ RSpec.describe "RailsWebhookOutbox::Overview", type: :request do
       expect(response.content_type).to include("text/html")
     end
 
+    it "subscribes to the overview stream for live updates" do
+      get "/rails_webhook_outbox"
+      expect(response.body).to include("<turbo-cable-stream-source")
+      expect(response.body).to include("rwo-overview-stats", "rwo-overview-failures")
+    end
+
     it "returns 403 when the dashboard is disabled" do
       RailsWebhookOutbox.config.dashboard_enabled = false
       get "/rails_webhook_outbox"
