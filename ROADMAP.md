@@ -7,14 +7,10 @@
 
 ## 0.4.0 — Dashboard
 
-- Mountable engine UI (`mount RailsWebhookOutbox::Engine => "/admin/webhooks"`)
-- Turbo Streams for live updates
-- Dark mode support
-- Subscription management CRUD (list, create, edit, enable/disable)
-- Delivery log browser with filters (status, event, date range)
-- Delivery detail view (request/response, timeline)
-- Manual retry button for failed deliveries
-- Registered events browser with payload examples
+Tracked in [#12](https://github.com/eclectic-coding/rails_webhook_outbox/issues/12); one PR per item.
+
+- Delivery detail timeline — chronological attempt history (needs per-attempt data; `Delivery` only stores the latest attempt today)
+- Live overview — Turbo Stream updates for the overview counts and recent failures
 
 ---
 
