@@ -297,6 +297,70 @@ RSpec.describe RailsWebhookOutbox::DeliveryJob do
       end
     end
 
+    describe "attempt history" do
+      it "records a delivered attempt with the response and duration on success" do
+        allow(RailsWebhookOutbox::Sender).to receive(:call).and_return(success_response)
+        described_class.perform_now(delivery)
+
+        attempt = delivery.delivery_attempts.sole
+        expect(attempt).to be_delivered
+        expect(attempt).to have_attributes(attempt_number: 1, response_code: 200, response_body: "ok")
+        expect(attempt.duration_ms).to be >= 0
+        expect(attempt.created_at).to be_present
+      end
+
+      it "records a failed attempt on a retryable failure" do
+        RailsWebhookOutbox.configure { |c| c.max_retries = 3 }
+        allow(RailsWebhookOutbox::Sender).to receive(:call).and_raise(delivery_error)
+        described_class.perform_now(delivery) rescue RailsWebhookOutbox::DeliveryError
+
+        attempt = delivery.delivery_attempts.sole
+        expect(attempt).to be_failed
+        expect(attempt).to have_attributes(attempt_number: 1, response_code: 503, response_body: "Service Unavailable")
+        expect(attempt.duration_ms).to be >= 0
+      end
+
+      it "records a failed attempt on the final failure" do
+        RailsWebhookOutbox.configure { |c| c.max_retries = 1 }
+        allow(RailsWebhookOutbox::Sender).to receive(:call).and_raise(delivery_error)
+        described_class.perform_now(delivery)
+
+        expect(delivery.delivery_attempts.sole).to be_failed
+      end
+
+      it "numbers attempts across retries" do
+        RailsWebhookOutbox.configure { |c| c.max_retries = 3 }
+        allow(RailsWebhookOutbox::Sender).to receive(:call).and_raise(delivery_error)
+        2.times { described_class.perform_now(delivery) rescue RailsWebhookOutbox::DeliveryError }
+
+        expect(delivery.delivery_attempts.pluck(:attempt_number)).to eq([1, 2])
+      end
+
+      it "truncates the stored response body to 1000 characters" do
+        allow(RailsWebhookOutbox::Sender).to receive(:call)
+          .and_return(instance_double(Net::HTTPResponse, code: "200", body: "x" * 2000))
+        described_class.perform_now(delivery)
+
+        expect(delivery.delivery_attempts.sole.response_body.length).to eq(1000)
+      end
+
+      it "records a delivered attempt with no response in test_mode" do
+        RailsWebhookOutbox.configure { |c| c.test_mode = true }
+        described_class.perform_now(delivery)
+
+        attempt = delivery.delivery_attempts.sole
+        expect(attempt).to be_delivered
+        expect(attempt).to have_attributes(attempt_number: 1, response_code: nil, duration_ms: 0)
+      end
+
+      it "records no attempt when the subscription is inactive" do
+        subscription.update!(active: false)
+        described_class.perform_now(delivery)
+
+        expect(delivery.delivery_attempts).to be_empty
+      end
+    end
+
     context "when the subscription is inactive" do
       before { subscription.update!(active: false) }
 

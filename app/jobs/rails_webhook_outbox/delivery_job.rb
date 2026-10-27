@@ -7,6 +7,7 @@ module RailsWebhookOutbox
       return skip_disabled_subscription(delivery) unless delivery.subscription.active?
 
       if RailsWebhookOutbox.config.test_mode
+        record_attempt(delivery, outcome: :delivered, duration_ms: 0)
         delivery.update!(status: :delivered, attempts: delivery.attempts + 1, delivered_at: Time.current)
         delivery.subscription.record_delivery_success!
         notify("webhook.delivered.rails_webhook_outbox", delivery, 0)
@@ -16,6 +17,8 @@ module RailsWebhookOutbox
       start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       response = Sender.call(delivery)
       duration_ms = elapsed_ms(start)
+      record_attempt(delivery, outcome: :delivered, response_code: response.code.to_i,
+        response_body: response.body.truncate(1000), duration_ms: duration_ms)
       delivery.update!(
         status: :delivered,
         response_code: response.code.to_i,
@@ -30,6 +33,8 @@ module RailsWebhookOutbox
       duration_ms = elapsed_ms(start)
       max_retries = RailsWebhookOutbox.config.max_retries
       final = executions >= max_retries
+      record_attempt(delivery, outcome: :failed, response_code: e.response_code,
+        response_body: e.response_body&.truncate(1000), duration_ms: duration_ms)
       delivery.update!(
         response_code: e.response_code,
         response_body: e.response_body&.truncate(1000),
@@ -52,6 +57,16 @@ module RailsWebhookOutbox
     def skip_disabled_subscription(delivery)
       delivery.update!(status: :failed, next_retry_at: nil)
       Rails.logger.warn { "[RailsWebhookOutbox] skipped event=#{delivery.event} delivery_id=#{delivery.id} subscription_id=#{delivery.subscription_id} reason=subscription_inactive" }
+    end
+
+    def record_attempt(delivery, outcome:, duration_ms:, response_code: nil, response_body: nil)
+      delivery.delivery_attempts.create!(
+        attempt_number: delivery.attempts + 1,
+        outcome: outcome,
+        response_code: response_code,
+        response_body: response_body,
+        duration_ms: duration_ms
+      )
     end
 
     def elapsed_ms(start)

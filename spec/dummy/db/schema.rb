@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_01_000002) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_27_000001) do
   create_table "orders", force: :cascade do |t|
     t.datetime "cancelled_at"
     t.datetime "created_at", null: false
@@ -40,6 +40,17 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_01_000002) do
     t.index ["subscription_id"], name: "index_webhook_outbox_deliveries_on_subscription_id"
   end
 
+  create_table "webhook_outbox_delivery_attempts", force: :cascade do |t|
+    t.integer "attempt_number", null: false
+    t.datetime "created_at", null: false
+    t.integer "delivery_id", null: false
+    t.integer "duration_ms"
+    t.integer "outcome", null: false
+    t.text "response_body"
+    t.integer "response_code"
+    t.index ["delivery_id", "attempt_number"], name: "idx_on_delivery_id_attempt_number_4dc6ca4292"
+  end
+
   create_table "webhook_outbox_subscriptions", force: :cascade do |t|
     t.boolean "active", default: true, null: false
     t.integer "consecutive_failures", default: 0, null: false
@@ -55,4 +66,5 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_01_000002) do
   end
 
   add_foreign_key "webhook_outbox_deliveries", "webhook_outbox_subscriptions", column: "subscription_id"
+  add_foreign_key "webhook_outbox_delivery_attempts", "webhook_outbox_deliveries", column: "delivery_id", on_delete: :cascade
 end

@@ -30,6 +30,7 @@ A Rails engine for sending outgoing webhooks with HMAC signing, ActiveJob-based 
 - [Testing](#testing)
 - [Development](#development)
   - [Dummy App](#dummy-app)
+- [Upgrading](#upgrading)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -137,6 +138,23 @@ RailsWebhookOutbox::Delivery.retryable   # pending — awaiting delivery or retr
 RailsWebhookOutbox::Delivery.delivered   # successfully delivered
 RailsWebhookOutbox::Delivery.failed      # exhausted all retries
 ```
+
+Every HTTP attempt is also recorded as a `RailsWebhookOutbox::DeliveryAttempt`, so earlier failures
+are kept after a retry succeeds (the delivery itself only stores the latest response):
+
+```ruby
+delivery.delivery_attempts.each do |attempt|
+  attempt.attempt_number  # => 1, 2, 3, ...
+  attempt.outcome         # => "failed" or "delivered"
+  attempt.response_code   # => 503
+  attempt.response_body   # => truncated to 1000 characters
+  attempt.duration_ms     # => 182
+  attempt.created_at
+end
+```
+
+Attempts are deleted with their delivery, including by `webhook_outbox:cleanup`. Upgrading from a
+version before 0.4.0 requires a migration — see [Upgrading](#upgrading).
 
 [Back to top](#table-of-contents)
 
@@ -564,6 +582,16 @@ The seed data creates a subscription pointing to `http://localhost:4000/webhooks
 ```ruby
 RailsWebhookOutbox::Subscription.first.update!(url: "https://webhook.site/your-id")
 ```
+
+[Back to top](#table-of-contents)
+
+## Upgrading
+
+Some releases need action from you, such as a database migration. Read [UPGRADING.md](UPGRADING.md)
+before updating the gem, and check the **BREAKING** entries in the [CHANGELOG](CHANGELOG.md).
+
+**0.4.0 requires a new table** (`webhook_outbox_delivery_attempts`): run `bin/rails db:migrate`
+before deploying. See [Upgrading to 0.4.0](UPGRADING.md#upgrading-to-040).
 
 [Back to top](#table-of-contents)
 
