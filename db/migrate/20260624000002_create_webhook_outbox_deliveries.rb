@@ -1,6 +1,6 @@
 class CreateWebhookOutboxDeliveries < ActiveRecord::Migration[7.2]
   def change
-    create_table :webhook_outbox_deliveries do |t|
+    create_table :webhook_outbox_deliveries, if_not_exists: true do |t|
       t.references :subscription, null: false, foreign_key: { to_table: :webhook_outbox_subscriptions }
       t.string :event, null: false
       t.json :payload, null: false
@@ -13,8 +13,8 @@ class CreateWebhookOutboxDeliveries < ActiveRecord::Migration[7.2]
       t.timestamps
     end
 
-    add_index :webhook_outbox_deliveries, :status
-    add_index :webhook_outbox_deliveries, :event
-    add_index :webhook_outbox_deliveries, [:subscription_id, :created_at]
+    add_index :webhook_outbox_deliveries, :status, if_not_exists: true
+    add_index :webhook_outbox_deliveries, :event, if_not_exists: true
+    add_index :webhook_outbox_deliveries, [:subscription_id, :created_at], if_not_exists: true
   end
 end

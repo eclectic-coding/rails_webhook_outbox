@@ -48,12 +48,15 @@ And then execute:
 $ bundle install
 ```
 
-Run the install generator:
+Run the install generator, then migrate:
 
 ```bash
 $ rails generate rails_webhook_outbox:install
 $ rails db:migrate
 ```
+
+The generator creates `config/initializers/rails_webhook_outbox.rb`. It does not copy any migrations:
+the engine adds its own to your app's migration paths, so `rails db:migrate` creates the tables.
 
 ## Configuration
 

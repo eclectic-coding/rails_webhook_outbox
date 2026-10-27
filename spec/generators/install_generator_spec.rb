@@ -16,38 +16,12 @@ RSpec.describe RailsWebhookOutbox::Generators::InstallGenerator do
     File.expand_path(relative, destination_root)
   end
 
-  it "copies the subscriptions migration" do
+  # The engine appends its own migrations to the host app (see Engine's
+  # :append_migrations initializer). Copying them as well makes `db:migrate`
+  # raise ActiveRecord::DuplicateMigrationNameError.
+  it "does not copy migrations into the host app" do
     run_generator
-    path = migration_file_name("db/migrate/create_webhook_outbox_subscriptions.rb")
-    expect(path).not_to be_nil
-    expect(File.read(path)).to include("create_table :webhook_outbox_subscriptions")
-  end
-
-  it "copies the deliveries migration" do
-    run_generator
-    path = migration_file_name("db/migrate/create_webhook_outbox_deliveries.rb")
-    expect(path).not_to be_nil
-    expect(File.read(path)).to include("create_table :webhook_outbox_deliveries")
-  end
-
-  it "copies the delivery attempts migration" do
-    run_generator
-    path = migration_file_name("db/migrate/create_webhook_outbox_delivery_attempts.rb")
-    expect(path).not_to be_nil
-    expect(File.read(path)).to include("create_table :webhook_outbox_delivery_attempts")
-  end
-
-  it "orders the delivery attempts migration after the deliveries migration" do
-    run_generator
-    deliveries = migration_file_name("db/migrate/create_webhook_outbox_deliveries.rb")
-    attempts = migration_file_name("db/migrate/create_webhook_outbox_delivery_attempts.rb")
-    expect(File.basename(attempts)).to be > File.basename(deliveries)
-  end
-
-  it "stamps migrations with the current Rails migration version" do
-    run_generator
-    path = migration_file_name("db/migrate/create_webhook_outbox_subscriptions.rb")
-    expect(File.read(path)).to include("ActiveRecord::Migration[#{ActiveRecord::Migration.current_version}]")
+    expect(Dir.glob(file("db/migrate/*"))).to be_empty
   end
 
   it "creates the initializer" do
