@@ -1,6 +1,25 @@
 require "rails_helper"
 
 RSpec.describe "Database migrations" do
+  # Apps that ran an older install generator already have these tables from copied
+  # migrations. The engine's own migrations must skip what exists instead of raising.
+  describe "re-running the engine migrations on an existing schema" do
+    let(:migrations) do
+      paths = RailsWebhookOutbox::Engine.config.paths["db/migrate"].expanded
+      ActiveRecord::MigrationContext.new(paths).migrations
+    end
+
+    it "finds the engine's migrations" do
+      expect(migrations.map(&:name)).to include("CreateWebhookOutboxSubscriptions", "CreateWebhookOutboxDeliveryAttempts")
+    end
+
+    it "is a no-op rather than raising" do
+      ActiveRecord::Migration.suppress_messages do
+        migrations.each { |migration| expect { migration.migrate(:up) }.not_to raise_error }
+      end
+    end
+  end
+
   describe "webhook_outbox_subscriptions" do
     it "has the expected columns" do
       columns = ActiveRecord::Base.connection.columns(:webhook_outbox_subscriptions)

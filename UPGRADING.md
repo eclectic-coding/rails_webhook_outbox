@@ -39,6 +39,29 @@ dashboard. Previously only the latest response was kept on the delivery itself.
 In a deploy pipeline, run `db:migrate` before the new code starts serving requests or running jobs
 (the usual release-phase step on most hosts).
 
+### If you ran the install generator on an earlier version
+
+Before 0.4.0, `rails generate rails_webhook_outbox:install` also copied the engine's table migrations
+into your app's `db/migrate`. The engine adds those same migrations to your app on its own, so with
+the copies present `db:migrate` fails:
+
+```
+ActiveRecord::DuplicateMigrationNameError: Multiple migrations have the name CreateWebhookOutboxSubscriptions.
+```
+
+To fix it, delete the copies and migrate. The engine's migrations now skip tables, columns, and
+indexes that already exist, so they are safe to run against a database the copies already built:
+
+```bash
+rm db/migrate/*_create_webhook_outbox_subscriptions.rb \
+   db/migrate/*_create_webhook_outbox_deliveries.rb
+bin/rails db:migrate
+```
+
+Commit the deletions. `db:migrate:status` will keep listing the old copied versions as `NO FILE`;
+that is harmless. The run also adds anything the copies lacked, such as the unique index on
+`idempotency_key`, and creates the new `webhook_outbox_delivery_attempts` table.
+
 ### If you deploy the code without migrating
 
 `DeliveryJob` sends the HTTP request first and records the attempt afterwards. Without the table,

@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING:** a new database table, `webhook_outbox_delivery_attempts`, is required. `DeliveryJob` writes to it on every attempt, so an app that runs 0.4.0 code without the migration will send webhooks but fail to record them (the delivery is left unmarked and the job raises `ActiveRecord::StatementInvalid`). Run `bin/rails db:migrate` before deploying; see [UPGRADING.md](UPGRADING.md#upgrading-to-040).
 
 ### Fixed
+- Fresh installs failed on `rails db:migrate` with `ActiveRecord::DuplicateMigrationNameError` — the install generator copied migrations that the engine also adds to the host app's migration paths. The generator now only creates the initializer; the engine supplies the migrations. Apps whose generator-copied migrations are already in `db/migrate` need a one-time cleanup; see [UPGRADING.md](UPGRADING.md#if-you-ran-the-install-generator-on-an-earlier-version).
 - Live delivery updates rendered blank in API-only host apps — the delivery row and detail Turbo Stream broadcasts are now rendered through the engine's own controller instead of the host's `ApplicationController`, so they carry real content and can resolve the engine's route helpers.
 
 ## [0.3.0] - 2026-07-02

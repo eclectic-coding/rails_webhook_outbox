@@ -1,33 +1,11 @@
 require "rails/generators"
-require "rails/generators/active_record"
 
 module RailsWebhookOutbox
   module Generators
     class InstallGenerator < Rails::Generators::Base
-      include Rails::Generators::Migration
-
       source_root File.expand_path("templates", __dir__)
 
-      desc "Creates a RailsWebhookOutbox initializer and copies migrations to your application."
-
-      def self.next_migration_number(dirname)
-        ActiveRecord::Generators::Base.next_migration_number(dirname)
-      end
-
-      def copy_migrations
-        migration_template(
-          "create_webhook_outbox_subscriptions.rb.tt",
-          "db/migrate/create_webhook_outbox_subscriptions.rb"
-        )
-        migration_template(
-          "create_webhook_outbox_deliveries.rb.tt",
-          "db/migrate/create_webhook_outbox_deliveries.rb"
-        )
-        migration_template(
-          "create_webhook_outbox_delivery_attempts.rb.tt",
-          "db/migrate/create_webhook_outbox_delivery_attempts.rb"
-        )
-      end
+      desc "Creates a RailsWebhookOutbox initializer. The engine supplies its own migrations; run `rails db:migrate` afterwards."
 
       def create_initializer
         template "initializer.rb", "config/initializers/rails_webhook_outbox.rb"
