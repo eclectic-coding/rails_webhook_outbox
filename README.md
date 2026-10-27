@@ -138,6 +138,23 @@ RailsWebhookOutbox::Delivery.delivered   # successfully delivered
 RailsWebhookOutbox::Delivery.failed      # exhausted all retries
 ```
 
+Every HTTP attempt is also recorded as a `RailsWebhookOutbox::DeliveryAttempt`, so earlier failures
+are kept after a retry succeeds (the delivery itself only stores the latest response):
+
+```ruby
+delivery.delivery_attempts.each do |attempt|
+  attempt.attempt_number  # => 1, 2, 3, ...
+  attempt.outcome         # => "failed" or "delivered"
+  attempt.response_code   # => 503
+  attempt.response_body   # => truncated to 1000 characters
+  attempt.duration_ms     # => 182
+  attempt.created_at
+end
+```
+
+Attempts are deleted with their delivery, including by `webhook_outbox:cleanup`. If you are upgrading
+from an earlier version, run `rails db:migrate` to create the `webhook_outbox_delivery_attempts` table.
+
 [Back to top](#table-of-contents)
 
 ## Async Delivery

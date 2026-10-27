@@ -23,6 +23,10 @@ module RailsWebhookOutbox
           "create_webhook_outbox_deliveries.rb.tt",
           "db/migrate/create_webhook_outbox_deliveries.rb"
         )
+        migration_template(
+          "create_webhook_outbox_delivery_attempts.rb.tt",
+          "db/migrate/create_webhook_outbox_delivery_attempts.rb"
+        )
       end
 
       def create_initializer

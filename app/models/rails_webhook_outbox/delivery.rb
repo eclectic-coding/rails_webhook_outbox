@@ -5,6 +5,8 @@ module RailsWebhookOutbox
     self.table_name = "webhook_outbox_deliveries"
 
     belongs_to :subscription
+    # Not `attempts`: that name is the integer counter column on this table.
+    has_many :delivery_attempts, -> { order(:attempt_number) }, dependent: :delete_all
 
     enum :status, { pending: 0, delivered: 1, failed: 2 }
 

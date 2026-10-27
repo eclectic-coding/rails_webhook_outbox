@@ -45,4 +45,35 @@ RSpec.describe "Database migrations" do
       expect(index_columns).to include(["subscription_id", "created_at"])
     end
   end
+
+  describe "webhook_outbox_delivery_attempts" do
+    it "has the expected columns" do
+      column_names = ActiveRecord::Base.connection.columns(:webhook_outbox_delivery_attempts).map(&:name)
+
+      expect(column_names).to include(
+        "delivery_id", "attempt_number", "outcome",
+        "response_code", "response_body", "duration_ms", "created_at"
+      )
+    end
+
+    it "enforces not-null constraints" do
+      columns = ActiveRecord::Base.connection.columns(:webhook_outbox_delivery_attempts)
+      not_null_columns = columns.select { |c| !c.null }.map(&:name)
+
+      expect(not_null_columns).to include("delivery_id", "attempt_number", "outcome", "created_at")
+    end
+
+    it "has an index on delivery and attempt number" do
+      indexes = ActiveRecord::Base.connection.indexes(:webhook_outbox_delivery_attempts)
+
+      expect(indexes.map(&:columns)).to include(["delivery_id", "attempt_number"])
+    end
+
+    it "cascades deletes from deliveries" do
+      foreign_key = ActiveRecord::Base.connection.foreign_keys(:webhook_outbox_delivery_attempts).sole
+
+      expect(foreign_key.to_table).to eq("webhook_outbox_deliveries")
+      expect(foreign_key.on_delete).to eq(:cascade)
+    end
+  end
 end

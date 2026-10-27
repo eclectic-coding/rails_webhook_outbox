@@ -30,6 +30,20 @@ RSpec.describe RailsWebhookOutbox::Generators::InstallGenerator do
     expect(File.read(path)).to include("create_table :webhook_outbox_deliveries")
   end
 
+  it "copies the delivery attempts migration" do
+    run_generator
+    path = migration_file_name("db/migrate/create_webhook_outbox_delivery_attempts.rb")
+    expect(path).not_to be_nil
+    expect(File.read(path)).to include("create_table :webhook_outbox_delivery_attempts")
+  end
+
+  it "orders the delivery attempts migration after the deliveries migration" do
+    run_generator
+    deliveries = migration_file_name("db/migrate/create_webhook_outbox_deliveries.rb")
+    attempts = migration_file_name("db/migrate/create_webhook_outbox_delivery_attempts.rb")
+    expect(File.basename(attempts)).to be > File.basename(deliveries)
+  end
+
   it "stamps migrations with the current Rails migration version" do
     run_generator
     path = migration_file_name("db/migrate/create_webhook_outbox_subscriptions.rb")
