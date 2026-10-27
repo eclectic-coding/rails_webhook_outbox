@@ -27,14 +27,18 @@ module RailsWebhookOutbox
     end
 
     def broadcast_row_update
-      broadcast_replace_to "rails_webhook_outbox_deliveries",
-        partial: "rails_webhook_outbox/deliveries/row", locals: { delivery: self }
+      broadcast_replace_to "rails_webhook_outbox_deliveries", html: render_partial("rails_webhook_outbox/deliveries/row")
     end
 
     def broadcast_detail_update
-      broadcast_replace_to self,
-        target: dom_id(self, :detail),
-        partial: "rails_webhook_outbox/deliveries/detail", locals: { delivery: self }
+      broadcast_replace_to self, target: dom_id(self, :detail), html: render_partial("rails_webhook_outbox/deliveries/detail")
+    end
+
+    # Rendered through the engine's own controller: Turbo's default (the host app's
+    # ApplicationController) renders blank in an API-only host and has no access to
+    # the engine's route helpers.
+    def render_partial(partial)
+      BaseController.render(partial: partial, locals: { delivery: self }, formats: [:html])
     end
 
     def broadcast_overview_update

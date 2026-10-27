@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Live delivery updates — `Delivery` broadcasts Turbo Stream replacements on update, so the delivery log rows and the delivery detail view refresh without a page reload; the manual retry button responds with Turbo Stream too.
 - Live overview — the dashboard overview's counts and recent failures update without a reload. `Delivery` and `Subscription` broadcast Turbo Stream replacements of the stats and recent-failures partials on every create, update, and destroy. The overview data is now served by `RailsWebhookOutbox::Overview`, shared by the controller and the broadcasts.
 
+### Fixed
+- Live delivery updates rendered blank in API-only host apps — the delivery row and detail Turbo Stream broadcasts are now rendered through the engine's own controller instead of the host's `ApplicationController`, so they carry real content and can resolve the engine's route helpers.
+
 ## [0.3.0] - 2026-07-02
 
 ### Added
