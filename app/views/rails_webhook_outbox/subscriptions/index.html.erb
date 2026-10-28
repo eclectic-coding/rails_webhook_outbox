@@ -17,21 +17,7 @@
       </tr>
     </thead>
     <tbody>
-      <% @subscriptions.each do |subscription| %>
-        <tr>
-          <td><%= link_to subscription.url, subscription_path(subscription), class: "rwo-path" %></td>
-          <td class="rwo-muted"><%= subscription.events.join(", ") %></td>
-          <td><%= active_badge(subscription.active?) %></td>
-          <td class="rwo-muted"><%= subscription.consecutive_failures %></td>
-          <td>
-            <%= button_to(subscription.active? ? "Disable" : "Enable",
-                  subscription_path(subscription),
-                  method: :patch,
-                  params: { subscription: { active: !subscription.active? } },
-                  class: "rwo-btn-small") %>
-          </td>
-        </tr>
-      <% end %>
+      <%= render partial: "rails_webhook_outbox/subscriptions/subscription", collection: @subscriptions %>
     </tbody>
   </table>
 <% end %>

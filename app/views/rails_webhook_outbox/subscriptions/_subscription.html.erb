@@ -1,0 +1,13 @@
+<tr id="<%= dom_id(subscription) %>">
+  <td><%= link_to subscription.url, subscription_path(subscription), class: "rwo-path" %></td>
+  <td class="rwo-muted"><%= subscription.events.join(", ") %></td>
+  <td><%= active_badge(subscription.active?) %></td>
+  <td class="rwo-muted"><%= subscription.consecutive_failures %></td>
+  <td>
+    <%= button_to(subscription.active? ? "Disable" : "Enable",
+          toggle_subscription_path(subscription),
+          method: :patch,
+          params: { active: !subscription.active? },
+          class: "rwo-btn-small") %>
+  </td>
+</tr>

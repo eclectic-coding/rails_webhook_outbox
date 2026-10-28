@@ -121,12 +121,12 @@ RSpec.describe "RailsWebhookOutbox::Subscriptions", type: :request do
   # Browsers submit button_to forms as POST with a hidden _method field. The dummy app is
   # API-only (no Rack::MethodOverride), like many hosts, so the engine must handle this itself.
   describe "form submissions using _method override" do
-    it "disables a subscription from the index page's button" do
+    it "updates a subscription from the edit form" do
       post "/rails_webhook_outbox/subscriptions/#{subscription.id}",
-        params: { _method: "patch", subscription: { active: "false" } }
+        params: { _method: "patch", subscription: { url: "https://updated.example.com/hooks" } }
 
       expect(response).to redirect_to("/rails_webhook_outbox/subscriptions/#{subscription.id}")
-      expect(subscription.reload).not_to be_active
+      expect(subscription.reload.url).to eq("https://updated.example.com/hooks")
     end
 
     it "rotates the secret from the show page's button" do
@@ -144,6 +144,59 @@ RSpec.describe "RailsWebhookOutbox::Subscriptions", type: :request do
       post form["action"], params: fields
 
       expect(subscription.reload).not_to be_active
+    end
+  end
+
+  describe "PATCH /rails_webhook_outbox/subscriptions/:id/toggle" do
+    let(:path) { "/rails_webhook_outbox/subscriptions/#{subscription.id}/toggle" }
+    let(:turbo_stream_headers) { { "Accept" => "text/vnd.turbo-stream.html" } }
+
+    it "disables the subscription and replaces just its row with a Turbo Stream" do
+      patch path, params: { active: false }, headers: turbo_stream_headers
+
+      expect(response).to have_http_status(:ok)
+      expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+      expect(response.body).to include('action="replace"', %(target="subscription_#{subscription.id}"))
+      expect(response.body).to include("Disabled", "Enable")
+      expect(subscription.reload).not_to be_active
+    end
+
+    it "enables a disabled subscription" do
+      subscription.update!(active: false)
+
+      patch path, params: { active: true }, headers: turbo_stream_headers
+
+      expect(response.body).to include("Active", "Disable")
+      expect(subscription.reload).to be_active
+    end
+
+    it "sets the state it was asked for rather than flipping it" do
+      patch path, params: { active: true }, headers: turbo_stream_headers
+
+      expect(subscription.reload).to be_active
+    end
+
+    it "redirects to the index, not the show page, without Turbo" do
+      patch path, params: { active: false }
+
+      expect(response).to redirect_to("/rails_webhook_outbox/subscriptions")
+      expect(subscription.reload).not_to be_active
+    end
+
+    it "returns 400 when the target state is missing" do
+      patch path
+
+      expect(response).to have_http_status(:bad_request)
+      expect(subscription.reload).to be_active
+    end
+
+    it "is gated by dashboard_enabled" do
+      RailsWebhookOutbox.config.dashboard_enabled = false
+
+      patch path, params: { active: false }
+
+      expect(response).to have_http_status(:forbidden)
+      expect(subscription.reload).to be_active
     end
   end
 

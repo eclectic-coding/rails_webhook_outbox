@@ -36,6 +36,18 @@ module RailsWebhookOutbox
       end
     end
 
+    # Enable/disable from the index. The button sends the state it wants, not "flip", so a
+    # stale page (or a second tab) can't invert someone else's change.
+    def toggle
+      @subscription = Subscription.find(params[:id])
+      @subscription.update!(active: ActiveModel::Type::Boolean.new.cast(params.require(:active)))
+
+      respond_to do |format|
+        format.turbo_stream
+        format.html { redirect_to subscriptions_path }
+      end
+    end
+
     def rotate_secret
       @subscription = Subscription.find(params[:id])
       @subscription.rotate_secret!

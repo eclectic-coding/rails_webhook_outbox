@@ -6,6 +6,7 @@ RailsWebhookOutbox::Engine.routes.draw do
   resources :subscriptions, only: [:index, :show, :new, :create, :edit, :update, :destroy] do
     member do
       patch :rotate_secret
+      patch :toggle
     end
   end
 
