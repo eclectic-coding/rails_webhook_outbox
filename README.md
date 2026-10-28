@@ -79,6 +79,8 @@ RailsWebhookOutbox.configure do |config|
   config.secret_rotation_grace_period = 24.hours
   config.circuit_breaker_threshold = 10  # consecutive permanent failures before auto-disabling; nil or 0 disables
   config.dashboard_enabled = true        # enable the mountable dashboard UI; defaults to true in development
+  config.latency_sample_size = 1000      # most recent deliveries used for the latency figures
+  config.overview_cache_ttl = 30.seconds # cache the overview latency figures; nil (default) disables caching
 end
 ```
 
@@ -141,6 +143,22 @@ RailsWebhookOutbox::Delivery.retryable   # pending — awaiting delivery or retr
 RailsWebhookOutbox::Delivery.delivered   # successfully delivered
 RailsWebhookOutbox::Delivery.failed      # exhausted all retries
 ```
+
+Latency is the time from creation to successful delivery, computed from existing columns:
+
+```ruby
+delivery.latency                                       # => 1.84 (seconds; nil until delivered)
+RailsWebhookOutbox::Delivery.average_latency           # last 24 hours; nil with no deliveries
+RailsWebhookOutbox::Delivery.p95_latency(window: 7.days)
+```
+
+Latency queries use the `delivered_at` index added in 0.5.0 (`bin/rails db:migrate`; see
+[UPGRADING.md](UPGRADING.md#upgrading-to-050)). To keep the cost bounded on busy apps, the aggregates use only the most recent
+`config.latency_sample_size` deliveries (default 1000) in the window. The dashboard overview
+recomputes its 24-hour figures whenever it re-renders; set `config.overview_cache_ttl` (for
+example `30.seconds`) to cache them in `Rails.cache` instead. Caching is off by default, needs a
+shared cache store (Redis, Memcached, solid_cache) to be shared across processes, and lets the
+latency tile lag by up to the TTL.
 
 Every HTTP attempt is also recorded as a `RailsWebhookOutbox::DeliveryAttempt`, so earlier failures
 are kept after a retry succeeds (the delivery itself only stores the latest response):
@@ -392,7 +410,7 @@ Pages:
 
 | Page | Purpose |
 |------|---------|
-| `/` | Overview — subscription/delivery counts, recent failures |
+| `/` | Overview — subscription/delivery counts, 24-hour average and p95 latency, recent failures |
 | `/subscriptions` | List, create, and edit subscriptions; enable/disable with one click |
 | `/subscriptions/:id` | Detail — masked signing secret with reveal/copy, rotate-secret button |
 | `/deliveries` | Filterable delivery log (status, event, date range) with live status updates via Turbo Streams |
@@ -552,7 +570,7 @@ $ bin/rails db:seed
 $ bin/dev
 ```
 
-The API is available at `http://localhost:3000`.
+The engine and its dashboard are mounted at `http://localhost:3000/rails_webhook_outbox`. The orders API used in the examples below is at `http://localhost:3000`.
 
 **Try it with curl**
 

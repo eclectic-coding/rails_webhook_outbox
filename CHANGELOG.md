@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Delivery latency — `Delivery#latency` returns the seconds from creation to successful delivery (`nil` until delivered). `Delivery.average_latency` and `Delivery.p95_latency` aggregate it over a window (default: the last 24 hours). The dashboard shows the latency on the delivery detail view and the 24-hour average and p95 on the overview, which updates live. The aggregates use at most `config.latency_sample_size` (default 1000) recent deliveries so the cost stays bounded on busy apps, and the overview figures can optionally be cached with `config.overview_cache_ttl` (default `nil`, off). A new migration adds an index on `webhook_outbox_deliveries.delivered_at` so the latency query stays fast on large tables; it is not breaking, but run `bin/rails db:migrate` (see [UPGRADING.md](UPGRADING.md#upgrading-to-050)). The overview now reads its subscription counts with one query instead of two.
+
 ## [0.4.0] - 2026-10-27
 
 ### Added

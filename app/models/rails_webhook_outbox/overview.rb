@@ -6,6 +6,8 @@ module RailsWebhookOutbox
     STATS_TARGET = "rwo-overview-stats".freeze
     FAILURES_TARGET = "rwo-overview-failures".freeze
     RECENT_FAILURES_LIMIT = 10
+    LATENCY_WINDOW = 24.hours
+    LATENCY_CACHE_KEY = "rails_webhook_outbox/overview/latency".freeze
 
     def self.broadcast_stats
       broadcast_replace(STATS_TARGET, "rails_webhook_outbox/overview/stats")
@@ -25,15 +27,23 @@ module RailsWebhookOutbox
     private_class_method :broadcast_replace
 
     def subscription_count
-      Subscription.count
+      subscription_counts.values.sum
     end
 
     def active_subscription_count
-      Subscription.active.count
+      subscription_counts.fetch(true, 0)
     end
 
     def delivery_count(status)
       delivery_counts.fetch(status.to_s, 0)
+    end
+
+    def average_latency
+      latency_summary[:average]
+    end
+
+    def p95_latency
+      latency_summary[:p95]
     end
 
     def recent_failures
@@ -41,6 +51,20 @@ module RailsWebhookOutbox
     end
 
     private
+
+    # Cached across requests and broadcasts only when `config.overview_cache_ttl` is set.
+    def latency_summary
+      @latency_summary ||= if (ttl = RailsWebhookOutbox.config.overview_cache_ttl)
+        Rails.cache.fetch(LATENCY_CACHE_KEY, expires_in: ttl) { Delivery.latency_summary(window: LATENCY_WINDOW) }
+      else
+        Delivery.latency_summary(window: LATENCY_WINDOW)
+      end
+    end
+
+    # One query for both the total and the active count.
+    def subscription_counts
+      @subscription_counts ||= Subscription.group(:active).count
+    end
 
     def delivery_counts
       @delivery_counts ||= Delivery.group(:status).count

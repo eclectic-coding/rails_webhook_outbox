@@ -24,6 +24,15 @@ RailsWebhookOutbox.configure do |config|
   # Set to nil or 0 to disable.
   config.max_payload_size = 65_536
 
+  # Dashboard latency figures (average and p95) use at most this many of the most
+  # recent deliveries from the last 24 hours, so the cost stays bounded at any volume.
+  # config.latency_sample_size = 1000
+
+  # Cache the dashboard's latency figures for this long (nil = no caching, the default).
+  # Uses Rails.cache, so a shared store (Redis, Memcached, solid_cache) is needed for the
+  # cache to be shared across processes. The latency tile can lag by up to this duration.
+  # config.overview_cache_ttl = 30.seconds
+
   # Set to true in test environments to suppress HTTP calls and capture dispatched events
   # in RailsWebhookOutbox::Testing.deliveries instead of creating DB records or jobs.
   # config.test_mode = false

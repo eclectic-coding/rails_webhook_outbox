@@ -40,6 +40,11 @@ RSpec.describe "RailsWebhookOutbox::Overview", type: :request do
         failed.update!(status: :failed)
       end
 
+      it "shows the average and p95 latency" do
+        get "/rails_webhook_outbox"
+        expect(response.body).to include("Avg latency (24h)", "p95")
+      end
+
       it "shows the recent failures" do
         get "/rails_webhook_outbox"
         expect(response.body).to include("order.created")

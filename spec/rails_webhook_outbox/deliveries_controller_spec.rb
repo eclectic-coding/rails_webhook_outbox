@@ -85,6 +85,12 @@ RSpec.describe "RailsWebhookOutbox::Deliveries", type: :request do
       expect(response.body).to include(CGI.escapeHTML(JSON.pretty_generate(delivery.payload)))
     end
 
+    it "shows the latency of a delivered delivery" do
+      delivery.update!(status: :delivered, delivered_at: delivery.created_at + 2)
+      get "/rails_webhook_outbox/deliveries/#{delivery.id}"
+      expect(response.body).to include("Latency", "2.0 s")
+    end
+
     it "shows the retry button for a failed delivery" do
       delivery.update!(status: :failed)
       get "/rails_webhook_outbox/deliveries/#{delivery.id}"

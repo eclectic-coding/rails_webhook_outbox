@@ -25,6 +25,24 @@ RSpec.describe RailsWebhookOutbox::ApplicationHelper, type: :helper do
     end
   end
 
+  describe "#format_latency" do
+    it "shows a dash when there is no latency" do
+      expect(helper.format_latency(nil)).to eq("—")
+    end
+
+    it "uses milliseconds under a second" do
+      expect(helper.format_latency(0.1234)).to eq("123 ms")
+    end
+
+    it "uses seconds under a minute" do
+      expect(helper.format_latency(12.34)).to eq("12.3 s")
+    end
+
+    it "uses minutes beyond that" do
+      expect(helper.format_latency(90)).to eq("1.5 min")
+    end
+  end
+
   describe "#masked_secret" do
     it "masks all but the last 4 characters" do
       expect(helper.masked_secret("abcdef1234")).to eq("••••••••1234")

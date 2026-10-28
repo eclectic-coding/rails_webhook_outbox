@@ -3,6 +3,36 @@
 Notes for upgrades that need action from you, newest version first. For everything that changed in a
 release, see the [CHANGELOG](CHANGELOG.md).
 
+## Upgrading to 0.5.0
+
+**Not breaking.** This release adds one index, and nothing breaks if you skip it, but the dashboard's
+latency figures stay slow on a large deliveries table until it exists.
+
+### What changed
+
+The delivery latency figures on the dashboard overview filter and sort by `delivered_at`. The new
+migration adds an index on `webhook_outbox_deliveries.delivered_at` so that stays a bounded index
+scan however many deliveries you have.
+
+### Steps
+
+1. Update the gem:
+
+   ```bash
+   bundle update rails_webhook_outbox
+   ```
+
+2. Run the migration (the engine adds its migrations to your app, so there is nothing to copy):
+
+   ```bash
+   bin/rails db:migrate
+   ```
+
+On a very large deliveries table, building the index can take a while and, depending on your
+database, lock writes to the table. If that matters, run the migration in a quiet period, or create
+the index yourself with your database's online option (for example `CREATE INDEX CONCURRENTLY` on
+PostgreSQL) before migrating. The migration skips an index that already exists.
+
 ## Upgrading to 0.4.0
 
 **This release has a breaking change: it requires a new database table.** Run the migration _before_
