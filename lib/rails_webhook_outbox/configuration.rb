@@ -8,7 +8,7 @@ module RailsWebhookOutbox
                   :delivery_job_queue, :max_payload_size, :test_mode,
                   :secret_rotation_grace_period, :circuit_breaker_threshold,
                   :dashboard_enabled, :latency_sample_size, :overview_cache_ttl,
-                  :on_dead_letter
+                  :on_dead_letter, :retention_period
 
     def initialize
       @events = []
@@ -26,6 +26,7 @@ module RailsWebhookOutbox
       @latency_sample_size = 1000
       @overview_cache_ttl = nil
       @on_dead_letter = nil
+      @retention_period = nil
     end
 
     def signing_algorithm=(value)
@@ -52,6 +53,14 @@ module RailsWebhookOutbox
       end
 
       @secret_rotation_grace_period = value
+    end
+
+    def retention_period=(value)
+      unless value.nil? || (value.is_a?(ActiveSupport::Duration) && value.positive?)
+        raise ArgumentError, "retention_period must be nil or a positive duration, e.g. 30.days"
+      end
+
+      @retention_period = value
     end
 
     def on_dead_letter=(value)

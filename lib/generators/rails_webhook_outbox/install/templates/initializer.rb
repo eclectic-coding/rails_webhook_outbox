@@ -24,6 +24,11 @@ RailsWebhookOutbox.configure do |config|
   # Set to nil or 0 to disable.
   config.max_payload_size = 65_536
 
+  # How long to keep delivered and failed deliveries (and their attempt history). nil keeps
+  # them forever. Nothing prunes on its own: schedule RailsWebhookOutbox::PruneDeliveriesJob
+  # (cron, solid_queue recurring tasks, ...) or run `rails webhook_outbox:cleanup`.
+  # config.retention_period = 30.days
+
   # Called with the Delivery when it exhausts all retries and is marked failed, so you can
   # alert or act on it. Not called for retries or for deliveries skipped because the
   # subscription is inactive. An error raised here is logged, never re-raised.
