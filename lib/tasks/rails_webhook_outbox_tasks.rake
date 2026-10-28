@@ -38,14 +38,13 @@ namespace :webhook_outbox do
   desc "Delete delivered and failed deliveries older than the given number of days"
   task :cleanup, [:days] => :environment do |_task, args|
     days = args[:days].to_i
+    period = days.positive? ? days.days : RailsWebhookOutbox.config.retention_period
 
-    if days <= 0
-      puts "Usage: rake webhook_outbox:cleanup[days] (days must be a positive integer)"
+    if period.nil?
+      puts "Usage: rake webhook_outbox:cleanup[days] (days must be a positive integer, or set config.retention_period)"
     else
-      scope = RailsWebhookOutbox::Delivery.where(status: [:delivered, :failed]).where(created_at: ...days.days.ago)
-      count = scope.count
-      scope.delete_all
-      puts "Deleted #{count} #{"delivery".pluralize(count)} older than #{days} #{"day".pluralize(days)}"
+      count = RailsWebhookOutbox::Delivery.prune(older_than: period)
+      puts "Deleted #{count} #{"delivery".pluralize(count)} older than #{period.inspect}"
     end
   end
 end
