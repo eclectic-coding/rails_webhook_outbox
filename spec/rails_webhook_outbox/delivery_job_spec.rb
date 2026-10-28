@@ -119,6 +119,14 @@ RSpec.describe RailsWebhookOutbox::DeliveryJob do
         allow(RailsWebhookOutbox::Sender).to receive(:call).and_raise(delivery_error)
       end
 
+      it "does not call the on_dead_letter hook" do
+        hook = instance_double(Proc, call: nil)
+        RailsWebhookOutbox.configure { |c| c.on_dead_letter = hook }
+        described_class.perform_now(delivery) rescue RailsWebhookOutbox::DeliveryError
+
+        expect(hook).not_to have_received(:call)
+      end
+
       it "keeps status as pending" do
         described_class.perform_now(delivery) rescue RailsWebhookOutbox::DeliveryError
         expect(delivery.reload).to be_pending
@@ -250,6 +258,56 @@ RSpec.describe RailsWebhookOutbox::DeliveryJob do
         expect(subscription.reload.consecutive_failures).to eq(1)
       end
 
+      context "with an on_dead_letter hook" do
+        let(:hook) { instance_double(Proc, call: nil) }
+
+        before { RailsWebhookOutbox.configure { |c| c.on_dead_letter = hook } }
+
+        it "calls the hook once with the failed delivery" do
+          described_class.perform_now(delivery)
+
+          expect(hook).to have_received(:call).once
+          expect(hook).to have_received(:call).with(delivery)
+        end
+
+        it "calls the hook after the delivery is marked failed" do
+          status = nil
+          allow(hook).to receive(:call) { |d| status = d.reload.status }
+          described_class.perform_now(delivery)
+
+          expect(status).to eq("failed")
+        end
+
+        context "when the hook raises" do
+          before { allow(hook).to receive(:call).and_raise(StandardError, "pager down") }
+
+          it "does not raise" do
+            expect { described_class.perform_now(delivery) }.not_to raise_error
+          end
+
+          it "logs the error with the [RailsWebhookOutbox] prefix" do
+            msg = nil
+            allow(Rails.logger).to receive(:error) { |&blk| msg = blk&.call }
+            described_class.perform_now(delivery)
+
+            expect(msg).to include("[RailsWebhookOutbox]", "dead_letter_hook_failed", delivery.id.to_s, "StandardError: pager down")
+          end
+
+          it "still records the circuit breaker failure" do
+            described_class.perform_now(delivery)
+
+            expect(subscription.reload.consecutive_failures).to eq(1)
+          end
+        end
+      end
+
+      context "without an on_dead_letter hook" do
+        it "completes normally" do
+          expect { described_class.perform_now(delivery) }.not_to raise_error
+          expect(delivery.reload).to be_failed
+        end
+      end
+
       context "when consecutive_failures reaches the circuit_breaker_threshold" do
         before { RailsWebhookOutbox.configure { |c| c.circuit_breaker_threshold = 1 } }
 
@@ -367,6 +425,14 @@ RSpec.describe RailsWebhookOutbox::DeliveryJob do
       it "does not call Sender" do
         expect(RailsWebhookOutbox::Sender).not_to receive(:call)
         described_class.perform_now(delivery)
+      end
+
+      it "does not call the on_dead_letter hook" do
+        hook = instance_double(Proc, call: nil)
+        RailsWebhookOutbox.configure { |c| c.on_dead_letter = hook }
+        described_class.perform_now(delivery)
+
+        expect(hook).not_to have_received(:call)
       end
 
       it "marks the delivery as failed" do
