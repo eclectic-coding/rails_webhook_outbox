@@ -20,6 +20,18 @@ module RailsWebhookOutbox
       content_tag(:span, active ? "Active" : "Disabled", class: "rwo-badge #{css_class}")
     end
 
+    def format_latency(seconds)
+      return "—" if seconds.nil?
+
+      if seconds < 1
+        "#{(seconds * 1000).round} ms"
+      elsif seconds < 60
+        "#{seconds.round(1)} s"
+      else
+        "#{(seconds / 60.0).round(1)} min"
+      end
+    end
+
     def masked_secret(secret)
       return "" if secret.blank?
 

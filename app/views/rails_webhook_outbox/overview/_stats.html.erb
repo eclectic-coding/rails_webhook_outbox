@@ -16,4 +16,9 @@
     <div class="rwo-stat-label">Failed</div>
     <div class="rwo-stat-value"><%= link_to overview.delivery_count(:failed), deliveries_path(status: "failed") %></div>
   </div>
+  <div class="rwo-stat">
+    <div class="rwo-stat-label">Avg latency (24h)</div>
+    <div class="rwo-stat-value"><%= format_latency(overview.average_latency) %></div>
+    <div class="rwo-muted">p95 <%= format_latency(overview.p95_latency) %></div>
+  </div>
 </div>

@@ -394,7 +394,7 @@ Pages:
 
 | Page | Purpose |
 |------|---------|
-| `/` | Overview — subscription/delivery counts, recent failures |
+| `/` | Overview — subscription/delivery counts, 24-hour average and p95 latency, recent failures |
 | `/subscriptions` | List, create, and edit subscriptions; enable/disable with one click |
 | `/subscriptions/:id` | Detail — masked signing secret with reveal/copy, rotate-secret button |
 | `/deliveries` | Filterable delivery log (status, event, date range) with live status updates via Turbo Streams |
