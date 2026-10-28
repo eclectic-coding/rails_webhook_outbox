@@ -47,6 +47,48 @@ RSpec.describe RailsWebhookOutbox::Configuration do
     it "sets circuit_breaker_threshold to 10" do
       expect(config.circuit_breaker_threshold).to eq(10)
     end
+
+    it "sets latency_sample_size to 1000" do
+      expect(config.latency_sample_size).to eq(1000)
+    end
+
+    it "disables the overview cache" do
+      expect(config.overview_cache_ttl).to be_nil
+    end
+  end
+
+  describe "#latency_sample_size=" do
+    it "accepts a positive integer" do
+      config.latency_sample_size = 50
+      expect(config.latency_sample_size).to eq(50)
+    end
+
+    [0, -1, 1.5, nil, "10"].each do |value|
+      it "raises on #{value.inspect}" do
+        expect { config.latency_sample_size = value }
+          .to raise_error(ArgumentError, /latency_sample_size must be a positive integer/)
+      end
+    end
+  end
+
+  describe "#overview_cache_ttl=" do
+    it "accepts a positive duration" do
+      config.overview_cache_ttl = 30.seconds
+      expect(config.overview_cache_ttl).to eq(30.seconds)
+    end
+
+    it "accepts nil to disable caching" do
+      config.overview_cache_ttl = 30.seconds
+      config.overview_cache_ttl = nil
+      expect(config.overview_cache_ttl).to be_nil
+    end
+
+    [0, -5, "30"].each do |value|
+      it "raises on #{value.inspect}" do
+        expect { config.overview_cache_ttl = value }
+          .to raise_error(ArgumentError, /overview_cache_ttl must be nil or a positive duration/)
+      end
+    end
   end
 
   describe "#signing_algorithm=" do

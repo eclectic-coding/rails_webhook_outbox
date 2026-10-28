@@ -79,6 +79,8 @@ RailsWebhookOutbox.configure do |config|
   config.secret_rotation_grace_period = 24.hours
   config.circuit_breaker_threshold = 10  # consecutive permanent failures before auto-disabling; nil or 0 disables
   config.dashboard_enabled = true        # enable the mountable dashboard UI; defaults to true in development
+  config.latency_sample_size = 1000      # most recent deliveries used for the latency figures
+  config.overview_cache_ttl = 30.seconds # cache the overview latency figures; nil (default) disables caching
 end
 ```
 

@@ -7,7 +7,7 @@ module RailsWebhookOutbox
                   :max_retries, :retry_backoff, :request_timeout,
                   :delivery_job_queue, :max_payload_size, :test_mode,
                   :secret_rotation_grace_period, :circuit_breaker_threshold,
-                  :dashboard_enabled
+                  :dashboard_enabled, :latency_sample_size, :overview_cache_ttl
 
     def initialize
       @events = []
@@ -22,6 +22,8 @@ module RailsWebhookOutbox
       @secret_rotation_grace_period = 24.hours
       @circuit_breaker_threshold = 10
       @dashboard_enabled = Rails.env.development?
+      @latency_sample_size = 1000
+      @overview_cache_ttl = nil
     end
 
     def signing_algorithm=(value)
@@ -48,6 +50,22 @@ module RailsWebhookOutbox
       end
 
       @secret_rotation_grace_period = value
+    end
+
+    def latency_sample_size=(value)
+      unless value.is_a?(Integer) && value.positive?
+        raise ArgumentError, "latency_sample_size must be a positive integer"
+      end
+
+      @latency_sample_size = value
+    end
+
+    def overview_cache_ttl=(value)
+      unless value.nil? || (value.is_a?(Numeric) && value.positive?)
+        raise ArgumentError, "overview_cache_ttl must be nil or a positive duration"
+      end
+
+      @overview_cache_ttl = value
     end
   end
 end
