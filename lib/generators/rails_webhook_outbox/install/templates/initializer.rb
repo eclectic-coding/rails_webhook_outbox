@@ -24,6 +24,11 @@ RailsWebhookOutbox.configure do |config|
   # Set to nil or 0 to disable.
   config.max_payload_size = 65_536
 
+  # Called with the Delivery when it exhausts all retries and is marked failed, so you can
+  # alert or act on it. Not called for retries or for deliveries skipped because the
+  # subscription is inactive. An error raised here is logged, never re-raised.
+  # config.on_dead_letter = ->(delivery) { Sentry.capture_message("Webhook failed: #{delivery.event}") }
+
   # Dashboard latency figures (average and p95) use at most this many of the most
   # recent deliveries from the last 24 hours, so the cost stays bounded at any volume.
   # config.latency_sample_size = 1000

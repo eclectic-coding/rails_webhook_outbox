@@ -55,6 +55,35 @@ RSpec.describe RailsWebhookOutbox::Configuration do
     it "disables the overview cache" do
       expect(config.overview_cache_ttl).to be_nil
     end
+
+    it "sets on_dead_letter to nil" do
+      expect(config.on_dead_letter).to be_nil
+    end
+  end
+
+  describe "#on_dead_letter=" do
+    it "accepts a lambda" do
+      hook = ->(delivery) { delivery }
+      config.on_dead_letter = hook
+      expect(config.on_dead_letter).to eq(hook)
+    end
+
+    it "accepts any object that responds to call" do
+      hook = Class.new { def call(_delivery) = nil }.new
+      config.on_dead_letter = hook
+      expect(config.on_dead_letter).to eq(hook)
+    end
+
+    it "accepts nil to clear the hook" do
+      config.on_dead_letter = ->(_delivery) {}
+      config.on_dead_letter = nil
+      expect(config.on_dead_letter).to be_nil
+    end
+
+    it "raises on an object that is not callable" do
+      expect { config.on_dead_letter = "notify_ops" }
+        .to raise_error(ArgumentError, /on_dead_letter must be nil or respond to #call/)
+    end
   end
 
   describe "#latency_sample_size=" do
