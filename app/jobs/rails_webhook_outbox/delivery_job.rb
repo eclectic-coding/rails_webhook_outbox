@@ -46,6 +46,7 @@ module RailsWebhookOutbox
         Rails.logger.error { "[RailsWebhookOutbox] failed event=#{delivery.event} delivery_id=#{delivery.id} subscription_id=#{delivery.subscription_id} status=#{e.response_code} attempts=#{delivery.attempts}" }
         notify("webhook.failed.rails_webhook_outbox", delivery, duration_ms)
         record_failure_and_notify_if_tripped(delivery)
+        run_dead_letter_hook(delivery)
       else
         Rails.logger.warn { "[RailsWebhookOutbox] retry event=#{delivery.event} delivery_id=#{delivery.id} subscription_id=#{delivery.subscription_id} status=#{e.response_code} attempt=#{delivery.attempts} next_retry_at=#{delivery.next_retry_at.utc.iso8601}" }
         raise
@@ -79,6 +80,14 @@ module RailsWebhookOutbox
         subscription_id: delivery.subscription_id,
         delivery_id: delivery.id,
         duration: duration_ms)
+    end
+
+    # Runs last, after the failure is persisted and the circuit breaker has been updated, so
+    # host code can't interfere with either. An error in the hook is logged, never raised.
+    def run_dead_letter_hook(delivery)
+      RailsWebhookOutbox.config.on_dead_letter&.call(delivery)
+    rescue => e
+      Rails.logger.error { "[RailsWebhookOutbox] dead_letter_hook_failed event=#{delivery.event} delivery_id=#{delivery.id} error=#{e.class}: #{e.message}" }
     end
 
     def record_failure_and_notify_if_tripped(delivery)

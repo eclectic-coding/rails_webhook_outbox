@@ -79,6 +79,7 @@ RailsWebhookOutbox.configure do |config|
   config.secret_rotation_grace_period = 24.hours
   config.circuit_breaker_threshold = 10  # consecutive permanent failures before auto-disabling; nil or 0 disables
   config.dashboard_enabled = true        # enable the mountable dashboard UI; defaults to true in development
+  config.on_dead_letter = ->(delivery) { }  # called when a delivery exhausts all retries; defaults to nil
   config.latency_sample_size = 1000      # most recent deliveries used for the latency figures
   config.overview_cache_ttl = 30.seconds # cache the overview latency figures; nil (default) disables caching
 end
@@ -244,6 +245,27 @@ ActiveSupport::Notifications.subscribe("webhook.failed.rails_webhook_outbox") do
   Sentry.capture_message("Webhook permanently failed", extra: event.payload)
 end
 ```
+
+### Dead letter hook
+
+To act on a permanently failed delivery with the record in hand (alert, open a ticket, queue a
+manual review), set `config.on_dead_letter` to anything that responds to `call`:
+
+```ruby
+RailsWebhookOutbox.configure do |config|
+  config.on_dead_letter = ->(delivery) do
+    Sentry.capture_message("Webhook failed: #{delivery.event}", extra: { delivery_id: delivery.id })
+  end
+end
+```
+
+The hook is called once, with the `Delivery`, after it has been marked `failed`, the
+`webhook.failed` notification has been published, and the circuit breaker has been updated. It runs
+inside the delivery job, so keep it quick, or enqueue your own job from it.
+
+It is **not** called for retryable failures, nor when a delivery is skipped because its
+subscription is inactive (no HTTP attempt was made). If the hook raises, the error is logged at
+`error` level with the `[RailsWebhookOutbox]` prefix and swallowed, so it can't break the job.
 
 [Back to top](#table-of-contents)
 

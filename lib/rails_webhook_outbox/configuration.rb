@@ -7,7 +7,8 @@ module RailsWebhookOutbox
                   :max_retries, :retry_backoff, :request_timeout,
                   :delivery_job_queue, :max_payload_size, :test_mode,
                   :secret_rotation_grace_period, :circuit_breaker_threshold,
-                  :dashboard_enabled, :latency_sample_size, :overview_cache_ttl
+                  :dashboard_enabled, :latency_sample_size, :overview_cache_ttl,
+                  :on_dead_letter
 
     def initialize
       @events = []
@@ -24,6 +25,7 @@ module RailsWebhookOutbox
       @dashboard_enabled = Rails.env.development?
       @latency_sample_size = 1000
       @overview_cache_ttl = nil
+      @on_dead_letter = nil
     end
 
     def signing_algorithm=(value)
@@ -50,6 +52,14 @@ module RailsWebhookOutbox
       end
 
       @secret_rotation_grace_period = value
+    end
+
+    def on_dead_letter=(value)
+      unless value.nil? || value.respond_to?(:call)
+        raise ArgumentError, "on_dead_letter must be nil or respond to #call"
+      end
+
+      @on_dead_letter = value
     end
 
     def latency_sample_size=(value)
