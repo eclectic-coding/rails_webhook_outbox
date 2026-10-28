@@ -162,6 +162,71 @@ RSpec.describe RailsWebhookOutbox::Delivery do
     end
   end
 
+  describe "latency" do
+    let(:now) { Time.current }
+
+    def create_delivered(latency:, delivered_at: now)
+      described_class.create!(
+        subscription: subscription, event: "order.created", payload: { id: 1 },
+        status: :delivered, created_at: delivered_at - latency, delivered_at: delivered_at
+      )
+    end
+
+    describe "#latency" do
+      it "is the seconds between creation and delivery" do
+        expect(create_delivered(latency: 2.5).latency).to be_within(0.001).of(2.5)
+      end
+
+      it "is nil while pending" do
+        expect(delivery.latency).to be_nil
+      end
+
+      it "is nil for a delivered record with no delivered_at" do
+        delivery.status = :delivered
+        expect(delivery.latency).to be_nil
+      end
+    end
+
+    describe ".latencies" do
+      it "returns sorted latencies of deliveries delivered within the window" do
+        create_delivered(latency: 3)
+        create_delivered(latency: 1)
+        create_delivered(latency: 9, delivered_at: now - 2.days)
+        delivery.save!
+
+        expect(described_class.latencies.map(&:round)).to eq([1, 3])
+        expect(described_class.latencies(window: 3.days).map(&:round)).to eq([1, 3, 9])
+      end
+    end
+
+    describe "sample cap" do
+      after { RailsWebhookOutbox.reset_configuration! }
+
+      it "uses only the most recent config.latency_sample_size deliveries" do
+        RailsWebhookOutbox.config.latency_sample_size = 2
+        create_delivered(latency: 100, delivered_at: now - 3.hours)
+        create_delivered(latency: 1, delivered_at: now - 2.hours)
+        create_delivered(latency: 3, delivered_at: now - 1.hour)
+
+        expect(described_class.latencies.map(&:round)).to eq([1, 3])
+      end
+    end
+
+    describe ".average_latency and .p95_latency" do
+      it "are nil with no delivered deliveries" do
+        expect(described_class.average_latency).to be_nil
+        expect(described_class.p95_latency).to be_nil
+      end
+
+      it "average the latencies and pick the nearest-rank 95th percentile" do
+        (1..20).each { |seconds| create_delivered(latency: seconds) }
+
+        expect(described_class.average_latency).to be_within(0.01).of(10.5)
+        expect(described_class.p95_latency).to be_within(0.01).of(19)
+      end
+    end
+  end
+
   describe "scopes" do
     before { delivery.save! }
 

@@ -17,6 +17,43 @@ module RailsWebhookOutbox
     validates :idempotency_key, presence: true
 
     scope :retryable, -> { pending }
+    scope :delivered_within, ->(window) { delivered.where(delivered_at: window.ago..) }
+
+    PERCENTILE_95 = 0.95
+
+    # Sorted end-to-end latencies (seconds) of the most recent deliveries delivered within
+    # the window, capped at `config.latency_sample_size` rows so the cost stays bounded
+    # however many deliveries there are. Computed in Ruby so it behaves the same on SQLite,
+    # PostgreSQL, and MySQL.
+    def self.latencies(window: 24.hours)
+      delivered_within(window)
+        .order(delivered_at: :desc)
+        .limit(RailsWebhookOutbox.config.latency_sample_size)
+        .pluck(:created_at, :delivered_at)
+        .map { |created, delivered| delivered - created }
+        .sort
+    end
+
+    def self.average_latency(window: 24.hours)
+      latency_summary(window: window)[:average]
+    end
+
+    def self.p95_latency(window: 24.hours)
+      latency_summary(window: window)[:p95]
+    end
+
+    # Both aggregates from a single pass over the sample; p95 is nearest-rank.
+    def self.latency_summary(window: 24.hours)
+      values = latencies(window: window)
+      return { average: nil, p95: nil } if values.empty?
+
+      { average: values.sum / values.size, p95: values[(PERCENTILE_95 * values.size).ceil - 1] }
+    end
+
+    # Seconds from creation to successful delivery; nil until delivered.
+    def latency
+      delivered_at - created_at if delivered? && delivered_at
+    end
 
     after_update_commit :broadcast_row_update
     after_update_commit :broadcast_detail_update
