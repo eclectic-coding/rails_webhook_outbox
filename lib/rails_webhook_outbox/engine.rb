@@ -6,6 +6,10 @@ module RailsWebhookOutbox
     isolate_namespace RailsWebhookOutbox
     config.generators.api_only = true
 
+    # The dashboard's button_to forms submit PATCH as POST plus a hidden _method field.
+    # API-only host apps don't include this middleware, so the engine brings its own.
+    middleware.use Rack::MethodOverride
+
     initializer :append_migrations do |app|
       unless app.root.to_s.match?(__dir__)
         RailsWebhookOutbox::Engine.config.paths["db/migrate"].expanded.each do |path|

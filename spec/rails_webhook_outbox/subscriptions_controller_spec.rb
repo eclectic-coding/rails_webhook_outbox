@@ -118,6 +118,35 @@ RSpec.describe "RailsWebhookOutbox::Subscriptions", type: :request do
     end
   end
 
+  # Browsers submit button_to forms as POST with a hidden _method field. The dummy app is
+  # API-only (no Rack::MethodOverride), like many hosts, so the engine must handle this itself.
+  describe "form submissions using _method override" do
+    it "disables a subscription from the index page's button" do
+      post "/rails_webhook_outbox/subscriptions/#{subscription.id}",
+        params: { _method: "patch", subscription: { active: "false" } }
+
+      expect(response).to redirect_to("/rails_webhook_outbox/subscriptions/#{subscription.id}")
+      expect(subscription.reload).not_to be_active
+    end
+
+    it "rotates the secret from the show page's button" do
+      expect {
+        post "/rails_webhook_outbox/subscriptions/#{subscription.id}/rotate_secret", params: { _method: "patch" }
+      }.to change { subscription.reload.secret }
+    end
+
+    it "submits the rendered Disable button's form successfully" do
+      subscription
+      get "/rails_webhook_outbox/subscriptions"
+      form = Nokogiri::HTML(response.body).at_css("form.button_to")
+      fields = form.css("input[type=hidden]").to_h { |input| [input["name"], input["value"]] }
+
+      post form["action"], params: fields
+
+      expect(subscription.reload).not_to be_active
+    end
+  end
+
   describe "PATCH /rails_webhook_outbox/subscriptions/:id/rotate_secret" do
     it "rotates the secret and redirects" do
       old_secret = subscription.secret
