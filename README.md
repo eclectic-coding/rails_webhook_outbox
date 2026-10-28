@@ -552,7 +552,7 @@ $ bin/rails db:seed
 $ bin/dev
 ```
 
-The API is available at `http://localhost:3000`.
+The engine and its dashboard are mounted at `http://localhost:3000/rails_webhook_outbox`. The orders API used in the examples below is at `http://localhost:3000`.
 
 **Try it with curl**
 
