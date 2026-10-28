@@ -438,6 +438,7 @@ Pages:
 | `/subscriptions/:id` | Detail — masked signing secret with reveal/copy, rotate-secret button |
 | `/deliveries` | Filterable delivery log (status, event, date range) with live status updates via Turbo Streams, and an Export CSV link |
 | `/deliveries.csv` | CSV export of the deliveries matching the same filters (see below) |
+| `/stats.json` | JSON metrics for monitoring: counts, success rate, and latency (see below) |
 | `/deliveries/:id` | Detail — attempt timeline, payload, response, and a manual retry button for failed deliveries |
 | `/events` | Registered events with subscriber counts and a recent payload example |
 
@@ -450,6 +451,28 @@ deliveries; when the cap cuts rows off, the first line of the file is a `# WARNI
 narrow the filters to export the rest. Cells that begin with `=`, `+`, `-`, or `@` are prefixed
 with a `'` so spreadsheets don't run them as formulas. Like the rest of the dashboard it is gated by
 `dashboard_enabled`, so protect the mount with your own authentication.
+
+**Stats endpoint.** `GET /stats.json` (also `/stats`) returns JSON for monitoring and alerting,
+built from the same `Overview` the dashboard uses:
+
+```json
+{
+  "generated_at": "2026-10-28T14:00:00Z",
+  "subscriptions": { "total": 4, "active": 3 },
+  "deliveries": { "pending": 2, "delivered": 1840, "failed": 12 },
+  "window": { "duration": "24h", "seconds": 86400, "delivered": 310, "failed": 4, "success_rate": 0.9873 },
+  "latency": { "average_seconds": 1.2, "p95_seconds": 3.4 }
+}
+```
+
+The `deliveries` counts are all-time. `window` and `latency` cover deliveries created (and, for latency,
+delivered) in the last `?window=` — `15m`, `24h`, `7d`, and so on, from `1m` to `30d`, default `24h`.
+`success_rate` is delivered ÷ (delivered + failed) and ignores pending deliveries; it, and the
+latency figures, are `null` when there is nothing to measure. An invalid `window` returns `400` with
+`{"error": "..."}`. The endpoint is gated by `dashboard_enabled` and has no authentication of its own,
+so protect the mount (a monitoring job needs a way past it). The window query uses the `created_at`
+index added in 0.5.0 (`bin/rails db:migrate`; see [UPGRADING.md](UPGRADING.md#upgrading-to-050)), and
+`config.overview_cache_ttl` caches the figures if you poll it often on a busy app.
 
 The UI ships its own assets (CSS inlined, JS via importmap) and follows the system light/dark color
 scheme automatically — no asset pipeline configuration is required beyond what a standard Rails 7+

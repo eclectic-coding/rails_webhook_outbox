@@ -17,4 +17,7 @@ RailsWebhookOutbox::Engine.routes.draw do
   end
 
   resources :events, only: [:index]
+
+  # JSON only: /stats and /stats.json; any other format has no route.
+  resource :stats, only: [:show], defaults: { format: "json" }, constraints: { format: "json" }
 end

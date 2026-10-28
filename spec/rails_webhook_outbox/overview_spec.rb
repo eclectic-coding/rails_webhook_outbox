@@ -99,6 +99,75 @@ RSpec.describe RailsWebhookOutbox::Overview do
     end
   end
 
+  describe "#success_rate" do
+    it "is nil when nothing has finished" do
+      create_delivery(status: :pending)
+
+      expect(overview.success_rate).to be_nil
+    end
+
+    it "is delivered over delivered plus failed, ignoring pending" do
+      3.times { create_delivery(status: :delivered) }
+      create_delivery(status: :failed)
+      create_delivery(status: :pending)
+
+      expect(overview.success_rate).to eq(0.75)
+    end
+
+    it "rounds to four decimal places" do
+      create_delivery(status: :delivered)
+      2.times { create_delivery(status: :failed) }
+
+      expect(overview.success_rate).to eq(0.3333)
+    end
+
+    it "only counts deliveries created within the window" do
+      create_delivery(status: :delivered)
+      create_delivery(status: :failed, created_at: 3.days.ago)
+
+      expect(described_class.new(window: 1.hour).success_rate).to eq(1.0)
+      expect(described_class.new(window: 7.days).success_rate).to eq(0.5)
+    end
+  end
+
+  describe "#to_stats" do
+    it "returns the monitoring payload" do
+      create_delivery(status: :delivered)
+      create_delivery(status: :failed)
+      create_delivery(status: :pending)
+
+      stats = overview.to_stats(window_label: "24h")
+
+      expect(stats).to include(
+        subscriptions: { total: 1, active: 1 },
+        deliveries: { "pending" => 1, "delivered" => 1, "failed" => 1 },
+        window: { duration: "24h", seconds: 86_400, delivered: 1, failed: 1, success_rate: 0.5 }
+      )
+      expect(stats[:generated_at]).to match(/\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\z/)
+      expect(stats[:latency].keys).to eq(%i[average_seconds p95_seconds])
+    end
+
+    it "uses the window for the latency figures too" do
+      RailsWebhookOutbox::Delivery.create!(
+        subscription: subscription, event: "order.created", payload: { id: 1 }, status: :delivered,
+        created_at: 2.days.ago - 10, delivered_at: 2.days.ago
+      )
+
+      expect(described_class.new(window: 1.hour).to_stats(window_label: "1h")[:latency][:average_seconds]).to be_nil
+      expect(described_class.new(window: 7.days).to_stats(window_label: "7d")[:latency][:average_seconds]).to be_within(0.5).of(10)
+    end
+
+    it "reports zeros and nils on an empty database" do
+      RailsWebhookOutbox::Subscription.delete_all
+
+      expect(overview.to_stats(window_label: "24h")).to include(
+        subscriptions: { total: 0, active: 0 },
+        deliveries: { "pending" => 0, "delivered" => 0, "failed" => 0 },
+        latency: { average_seconds: nil, p95_seconds: nil }
+      )
+    end
+  end
+
   describe "latency caching" do
     include ActiveSupport::Testing::TimeHelpers
 
@@ -119,7 +188,7 @@ RSpec.describe RailsWebhookOutbox::Overview do
       deliver(2)
       described_class.new.average_latency
 
-      expect(cache.exist?(described_class::LATENCY_CACHE_KEY)).to be(false)
+      expect(cache.exist?("#{described_class::CACHE_KEY_PREFIX}/latency/#{described_class::DEFAULT_WINDOW.to_i}")).to be(false)
     end
 
     it "serves cached figures within the TTL" do
@@ -140,6 +209,16 @@ RSpec.describe RailsWebhookOutbox::Overview do
       travel 31.seconds do
         expect(described_class.new.average_latency).to be_within(0.5).of(5)
       end
+    end
+
+    it "caches the success rate too, separately per window" do
+      RailsWebhookOutbox.config.overview_cache_ttl = 30.seconds
+      create_delivery(status: :delivered)
+      expect(described_class.new.success_rate).to eq(1.0)
+
+      create_delivery(status: :failed)
+      expect(described_class.new.success_rate).to eq(1.0)
+      expect(described_class.new(window: 7.days).success_rate).to eq(0.5)
     end
 
     it "queries once for both figures" do
