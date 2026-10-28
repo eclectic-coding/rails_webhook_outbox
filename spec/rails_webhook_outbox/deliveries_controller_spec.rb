@@ -78,6 +78,100 @@ RSpec.describe "RailsWebhookOutbox::Deliveries", type: :request do
     end
   end
 
+  describe "GET /rails_webhook_outbox/deliveries.csv" do
+    def csv_lines
+      response.body.lines
+    end
+
+    it "downloads a CSV with a header row" do
+      get "/rails_webhook_outbox/deliveries.csv"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.media_type).to eq("text/csv")
+      expect(response.headers["Content-Disposition"]).to match(/\Aattachment; filename="webhook-deliveries-\d{8}-\d{6}\.csv"\z/)
+      expect(csv_lines.first).to start_with("id,event,subscription_url")
+    end
+
+    it "does not let proxies buffer or cache the stream" do
+      get "/rails_webhook_outbox/deliveries.csv"
+
+      expect(response.headers["Cache-Control"]).to eq("no-cache")
+      expect(response.headers["X-Accel-Buffering"]).to eq("no")
+    end
+
+    it "includes every delivery when unfiltered" do
+      delivery
+      RailsWebhookOutbox::Delivery.create!(subscription: subscription, event: "order.updated", payload: { id: 2 })
+
+      get "/rails_webhook_outbox/deliveries.csv"
+
+      expect(csv_lines.size).to eq(3)
+    end
+
+    it "applies the same status, event, and date filters as the list" do
+      delivery.update!(status: :failed)
+      RailsWebhookOutbox::Delivery.create!(subscription: subscription, event: "order.updated", payload: { id: 2 })
+      old = RailsWebhookOutbox::Delivery.create!(subscription: subscription, event: "order.created", payload: { id: 3 }, status: :failed)
+      old.update_column(:created_at, 10.days.ago)
+
+      get "/rails_webhook_outbox/deliveries.csv", params: { status: "failed", event: "order.created", from: 2.days.ago.to_date.to_s }
+
+      expect(csv_lines.size).to eq(2)
+      expect(csv_lines.last).to start_with("#{delivery.id},")
+    end
+
+    it "honours the upper date bound" do
+      delivery
+      old = RailsWebhookOutbox::Delivery.create!(subscription: subscription, event: "order.created", payload: { id: 3 })
+      old.update_column(:created_at, 10.days.ago)
+
+      get "/rails_webhook_outbox/deliveries.csv", params: { to: 5.days.ago.to_date.to_s }
+
+      expect(csv_lines.size).to eq(2)
+      expect(csv_lines.last).to start_with("#{old.id},")
+    end
+
+    it "ignores unknown filter values, like the list" do
+      delivery
+
+      get "/rails_webhook_outbox/deliveries.csv", params: { status: "bogus", event: "nope", from: "not-a-date" }
+
+      expect(csv_lines.size).to eq(2)
+    end
+
+    it "returns only the header when nothing matches" do
+      get "/rails_webhook_outbox/deliveries.csv"
+
+      expect(csv_lines.size).to eq(1)
+    end
+
+    it "is gated by dashboard_enabled" do
+      RailsWebhookOutbox.config.dashboard_enabled = false
+
+      get "/rails_webhook_outbox/deliveries.csv"
+
+      expect(response).to have_http_status(:forbidden)
+    end
+  end
+
+  describe "export link on the deliveries page" do
+    it "links to the CSV carrying the current filters but not the page" do
+      get "/rails_webhook_outbox/deliveries", params: { status: "failed", event: "order.created", page: "2" }
+
+      link = Nokogiri::HTML(response.body).at_xpath("//a[normalize-space()='Export CSV']")
+      expect(link["href"]).to start_with("/rails_webhook_outbox/deliveries.csv?")
+      expect(link["href"]).to include("status=failed", "event=order.created")
+      expect(link["href"]).not_to include("page=")
+    end
+
+    it "links to the unfiltered CSV when no filters are set" do
+      get "/rails_webhook_outbox/deliveries"
+
+      link = Nokogiri::HTML(response.body).at_xpath("//a[normalize-space()='Export CSV']")
+      expect(link["href"]).to eq("/rails_webhook_outbox/deliveries.csv")
+    end
+  end
+
   describe "GET /rails_webhook_outbox/deliveries/:id" do
     it "returns 200 HTML" do
       get "/rails_webhook_outbox/deliveries/#{delivery.id}"

@@ -436,9 +436,20 @@ Pages:
 | `/` | Overview — subscription/delivery counts, 24-hour average and p95 latency, recent failures |
 | `/subscriptions` | List, create, and edit subscriptions; enable/disable with one click |
 | `/subscriptions/:id` | Detail — masked signing secret with reveal/copy, rotate-secret button |
-| `/deliveries` | Filterable delivery log (status, event, date range) with live status updates via Turbo Streams |
+| `/deliveries` | Filterable delivery log (status, event, date range) with live status updates via Turbo Streams, and an Export CSV link |
+| `/deliveries.csv` | CSV export of the deliveries matching the same filters (see below) |
 | `/deliveries/:id` | Detail — attempt timeline, payload, response, and a manual retry button for failed deliveries |
 | `/events` | Registered events with subscriber counts and a recent payload example |
+
+**CSV export.** The Export CSV link on the deliveries page downloads the deliveries matching the
+current filters (the page number is ignored), most recently created first (by insertion order, which
+follows `created_at` unless rows were backfilled), with the columns `id`, `event`,
+`subscription_url`, `status`, `attempts`, `response_code`, `created_at`, `delivered_at`, and
+`next_retry_at` (UTC, ISO 8601). It is streamed in batches and capped at the newest 10,000
+deliveries; when the cap cuts rows off, the first line of the file is a `# WARNING: ...` row, so
+narrow the filters to export the rest. Cells that begin with `=`, `+`, `-`, or `@` are prefixed
+with a `'` so spreadsheets don't run them as formulas. Like the rest of the dashboard it is gated by
+`dashboard_enabled`, so protect the mount with your own authentication.
 
 The UI ships its own assets (CSS inlined, JS via importmap) and follows the system light/dark color
 scheme automatically — no asset pipeline configuration is required beyond what a standard Rails 7+

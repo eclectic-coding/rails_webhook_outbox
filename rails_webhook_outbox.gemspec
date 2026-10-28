@@ -20,6 +20,7 @@ Gem::Specification.new do |spec|
   end
 
   spec.add_dependency "rails", ">= 7.2"
+  spec.add_dependency "csv"
   spec.add_dependency "importmap-rails"
   spec.add_dependency "turbo-rails"
 end
