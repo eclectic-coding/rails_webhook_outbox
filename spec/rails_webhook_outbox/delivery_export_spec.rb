@@ -106,6 +106,31 @@ RSpec.describe RailsWebhookOutbox::DeliveryExport do
     end
   end
 
+  it "does not load the payload or response_body columns" do
+    create_delivery(response_body: "x" * 100)
+    queries = []
+    # The batch reads only; the truncation probe is `SELECT 1 AS one`.
+    collector = lambda do |*, payload|
+      sql = payload[:sql]
+      queries << sql if sql.match?(/\ASELECT .* FROM "webhook_outbox_deliveries"/) && !sql.include?("AS one")
+    end
+
+    ActiveSupport::Notifications.subscribed(collector, "sql.active_record") { lines }
+
+    expect(queries).not_to be_empty
+    # A bare `table.*` select would load every column without naming payload.
+    expect(queries).to all(satisfy { |sql| sql.include?('"event"') && !sql.include?(".*") })
+    expect(queries).to all(satisfy { |sql| !sql.include?("payload") && !sql.include?("response_body") })
+  end
+
+  it "orders by insertion (id), newest first, even when created_at disagrees" do
+    first = create_delivery(event: "inserted.first")
+    first.update_column(:created_at, 1.hour.from_now)
+    create_delivery(event: "inserted.second")
+
+    expect(rows.drop(1).map { |row| row[1] }).to eq(%w[inserted.second inserted.first])
+  end
+
   it "reads across several batches" do
     stub_const("#{described_class}::BATCH_SIZE", 2)
     5.times { |i| create_delivery(event: "event.#{i}") }

@@ -1,13 +1,20 @@
 module RailsWebhookOutbox
   # CSV export of a deliveries scope, produced line by line so a large export is never held
-  # in memory. Newest deliveries first, capped at ROW_LIMIT so one request can't export an
-  # unbounded table. When the cap cuts rows off, a warning row comes first in the file.
+  # in memory. Most recently created deliveries first, in insertion (id) order, which follows
+  # created_at except for backfilled rows or clock skew. Capped at ROW_LIMIT so one request
+  # can't export an unbounded table. When the cap cuts rows off, a warning row comes first.
   class DeliveryExport
     ROW_LIMIT = 10_000
     BATCH_SIZE = 1000
     HEADERS = [
       "id", "event", "subscription_url", "status", "attempts", "response_code",
       "created_at", "delivered_at", "next_retry_at"
+    ].freeze
+    # Only what the export writes, plus subscription_id for the URL. Skips the potentially
+    # large payload and response_body columns.
+    COLUMNS = [
+      :id, :event, :subscription_id, :status, :attempts, :response_code,
+      :created_at, :delivered_at, :next_retry_at
     ].freeze
     # Spreadsheets treat a cell starting with one of these as a formula (CSV injection).
     FORMULA_PREFIXES = ["=", "+", "-", "@", "\t", "\r"].freeze
@@ -21,7 +28,7 @@ module RailsWebhookOutbox
 
       yield line([truncation_warning]) if truncated?
       yield line(HEADERS)
-      @scope.includes(:subscription).limit(ROW_LIMIT).find_each(batch_size: BATCH_SIZE, order: :desc) do |delivery|
+      @scope.select(*COLUMNS).includes(:subscription).limit(ROW_LIMIT).find_each(batch_size: BATCH_SIZE, order: :desc) do |delivery|
         yield line(row(delivery))
       end
     end
