@@ -246,6 +246,27 @@ ActiveSupport::Notifications.subscribe("webhook.failed.rails_webhook_outbox") do
 end
 ```
 
+### Dead letter hook
+
+To act on a permanently failed delivery with the record in hand (alert, open a ticket, queue a
+manual review), set `config.on_dead_letter` to anything that responds to `call`:
+
+```ruby
+RailsWebhookOutbox.configure do |config|
+  config.on_dead_letter = ->(delivery) do
+    Sentry.capture_message("Webhook failed: #{delivery.event}", extra: { delivery_id: delivery.id })
+  end
+end
+```
+
+The hook is called once, with the `Delivery`, after it has been marked `failed`, the
+`webhook.failed` notification has been published, and the circuit breaker has been updated. It runs
+inside the delivery job, so keep it quick, or enqueue your own job from it.
+
+It is **not** called for retryable failures, nor when a delivery is skipped because its
+subscription is inactive (no HTTP attempt was made). If the hook raises, the error is logged at
+`error` level with the `[RailsWebhookOutbox]` prefix and swallowed, so it can't break the job.
+
 [Back to top](#table-of-contents)
 
 ## Logging
