@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Dashboard buttons that submit PATCH (enable/disable a subscription, rotate secret) did nothing in API-only host apps: `button_to` sends a POST with a hidden `_method` field, which needs `Rack::MethodOverride`, and API-only apps don't include it, so the request 404ed. The engine now adds the middleware to its own stack.
+
 ### Added
 - Scheduled delivery cleanup — `config.retention_period` (default `nil`, keep forever) and `RailsWebhookOutbox::PruneDeliveriesJob`, which deletes `delivered` and `failed` deliveries older than the period in batches, along with their attempt history. `pending` deliveries are never pruned. The job is a plain ActiveJob for the host app to schedule. `rake webhook_outbox:cleanup` now deletes in batches too, and uses `config.retention_period` when no `days` argument is given. No migration is needed.
 - Dead letter hook — `config.on_dead_letter = ->(delivery) { ... }` is called once when a delivery exhausts all retries and is marked `failed`, after the `webhook.failed` notification and the circuit breaker update. It is not called for retryable failures or for deliveries skipped because the subscription is inactive. An error raised by the hook is logged and swallowed. No migration is needed.
