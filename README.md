@@ -452,12 +452,36 @@ app already has.
 bin/rails webhook_outbox:retry_failed         # re-enqueue all failed deliveries for retry
 bin/rails webhook_outbox:list_subscriptions   # list subscriptions with status, events, and failure count
 bin/rails webhook_outbox:cleanup[7]           # delete delivered/failed deliveries older than N days
+bin/rails webhook_outbox:cleanup              # same, using config.retention_period
 ```
 
 `retry_failed` resets each failed delivery to `pending` and enqueues a `DeliveryJob`; deliveries
 whose subscription has since been disabled are skipped by the job itself, not by the task.
-`cleanup[days]` requires a positive integer argument and only removes deliveries in a terminal
-state (`delivered` or `failed`) — `pending` deliveries are never deleted.
+`cleanup[days]` takes a positive integer, or falls back to `config.retention_period` when no
+argument is given, and only removes deliveries in a terminal state (`delivered` or `failed`) —
+`pending` deliveries are never deleted. Deleting in batches keeps the locks short, and a delivery's
+attempt history goes with it.
+
+### Scheduled cleanup
+
+To keep the table from growing without bound, set a retention period and schedule
+`RailsWebhookOutbox::PruneDeliveriesJob`:
+
+```ruby
+# config/initializers/rails_webhook_outbox.rb
+config.retention_period = 30.days
+```
+
+```yaml
+# config/recurring.yml (solid_queue)
+production:
+  prune_webhook_deliveries:
+    class: RailsWebhookOutbox::PruneDeliveriesJob
+    schedule: every day at 3am
+```
+
+The job is a plain ActiveJob, so any scheduler works (cron with `rails runner`, sidekiq-cron, ...);
+the gem does not ship one. With `retention_period` left at `nil` the job does nothing.
 
 [Back to top](#table-of-contents)
 
