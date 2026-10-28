@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_28_000001) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_28_000002) do
   create_table "orders", force: :cascade do |t|
     t.datetime "cancelled_at"
     t.datetime "created_at", null: false
@@ -33,6 +33,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_28_000001) do
     t.integer "status", default: 0, null: false
     t.integer "subscription_id", null: false
     t.datetime "updated_at", null: false
+    t.index ["created_at"], name: "index_webhook_outbox_deliveries_on_created_at"
     t.index ["delivered_at"], name: "index_webhook_outbox_deliveries_on_delivered_at"
     t.index ["event"], name: "index_webhook_outbox_deliveries_on_event"
     t.index ["idempotency_key"], name: "index_webhook_outbox_deliveries_on_idempotency_key", unique: true

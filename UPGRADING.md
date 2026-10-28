@@ -5,14 +5,18 @@ release, see the [CHANGELOG](CHANGELOG.md).
 
 ## Upgrading to 0.5.0
 
-**Not breaking.** This release adds one index, and nothing breaks if you skip it, but the dashboard's
-latency figures stay slow on a large deliveries table until it exists.
+**Not breaking.** This release adds two indexes on the deliveries table, and nothing breaks if you
+skip them, but the dashboard and the stats endpoint stay slow on a large table until they exist.
 
 ### What changed
 
-The delivery latency figures on the dashboard overview filter and sort by `delivered_at`. The new
-migration adds an index on `webhook_outbox_deliveries.delivered_at` so that stays a bounded index
-scan however many deliveries you have.
+Two new migrations add indexes on `webhook_outbox_deliveries`:
+
+- `delivered_at`: the latency figures on the dashboard overview filter and sort by it.
+- `created_at`: the deliveries list sorts by it, and the stats endpoint's success rate filters on
+  it. Without it, each of those scans and sorts the whole table.
+
+Both keep these queries a bounded index scan however many deliveries you have.
 
 ### Steps
 
@@ -28,10 +32,10 @@ scan however many deliveries you have.
    bin/rails db:migrate
    ```
 
-On a very large deliveries table, building the index can take a while and, depending on your
-database, lock writes to the table. If that matters, run the migration in a quiet period, or create
-the index yourself with your database's online option (for example `CREATE INDEX CONCURRENTLY` on
-PostgreSQL) before migrating. The migration skips an index that already exists.
+On a very large deliveries table, building an index can take a while and, depending on your
+database, lock writes to the table. If that matters, run the migrations in a quiet period, or create
+the indexes yourself with your database's online option (for example `CREATE INDEX CONCURRENTLY` on
+PostgreSQL) before migrating. The migrations skip an index that already exists.
 
 ## Upgrading to 0.4.0
 
