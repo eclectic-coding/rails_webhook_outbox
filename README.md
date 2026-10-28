@@ -442,7 +442,8 @@ Pages:
 | `/events` | Registered events with subscriber counts and a recent payload example |
 
 **CSV export.** The Export CSV link on the deliveries page downloads the deliveries matching the
-current filters (the page number is ignored), newest first, with the columns `id`, `event`,
+current filters (the page number is ignored), most recently created first (by insertion order, which
+follows `created_at` unless rows were backfilled), with the columns `id`, `event`,
 `subscription_url`, `status`, `attempts`, `response_code`, `created_at`, `delivered_at`, and
 `next_retry_at` (UTC, ISO 8601). It is streamed in batches and capped at the newest 10,000
 deliveries; when the cap cuts rows off, the first line of the file is a `# WARNING: ...` row, so
