@@ -20,6 +20,14 @@ RSpec.describe "Database migrations" do
     end
   end
 
+  describe "webhook_outbox_deliveries" do
+    it "indexes delivered_at for the latency aggregates" do
+      indexes = ActiveRecord::Base.connection.indexes(:webhook_outbox_deliveries)
+
+      expect(indexes.map(&:columns)).to include(["delivered_at"])
+    end
+  end
+
   describe "webhook_outbox_subscriptions" do
     it "has the expected columns" do
       columns = ActiveRecord::Base.connection.columns(:webhook_outbox_subscriptions)
