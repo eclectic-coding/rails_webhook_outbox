@@ -20,6 +20,25 @@ module RailsWebhookOutbox
     scope :delivered_within, ->(window) { delivered.where(delivered_at: window.ago..) }
 
     PERCENTILE_95 = 0.95
+    PRUNE_BATCH_SIZE = 1000
+
+    # Deletes delivered and failed deliveries created before `older_than` ago, in batches so
+    # a large backlog never holds one long lock. Pending deliveries are never touched. The
+    # attempts go with them via the foreign key's ON DELETE CASCADE. Returns the count.
+    def self.prune(older_than:, batch_size: PRUNE_BATCH_SIZE)
+      scope = where(status: [:delivered, :failed]).where(created_at: ...older_than.ago)
+      total = 0
+
+      loop do
+        ids = scope.limit(batch_size).pluck(:id)
+        break if ids.empty?
+
+        total += where(id: ids).delete_all
+        break if ids.size < batch_size
+      end
+
+      total
+    end
 
     # Sorted end-to-end latencies (seconds) of the most recent deliveries delivered within
     # the window, capped at `config.latency_sample_size` rows so the cost stays bounded

@@ -61,6 +61,30 @@ RSpec.describe RailsWebhookOutbox::Configuration do
     end
   end
 
+  describe "#retention_period=" do
+    it "defaults to nil (keep forever)" do
+      expect(config.retention_period).to be_nil
+    end
+
+    it "accepts a positive duration" do
+      config.retention_period = 30.days
+      expect(config.retention_period).to eq(30.days)
+    end
+
+    it "accepts nil to disable pruning" do
+      config.retention_period = 30.days
+      config.retention_period = nil
+      expect(config.retention_period).to be_nil
+    end
+
+    [0.days, -1.day, 30, "30 days"].each do |value|
+      it "raises on #{value.inspect}" do
+        expect { config.retention_period = value }
+          .to raise_error(ArgumentError, /retention_period must be nil or a positive duration/)
+      end
+    end
+  end
+
   describe "#on_dead_letter=" do
     it "accepts a lambda" do
       hook = ->(delivery) { delivery }

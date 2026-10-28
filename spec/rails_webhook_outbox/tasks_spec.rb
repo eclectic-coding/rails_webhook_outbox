@@ -115,6 +115,33 @@ RSpec.describe "webhook_outbox rake tasks" do
       expect(RailsWebhookOutbox::Delivery.exists?(pending.id)).to be true
     end
 
+    context "with config.retention_period set" do
+      before { RailsWebhookOutbox.configure { |c| c.retention_period = 30.days } }
+
+      after { RailsWebhookOutbox.reset_configuration! }
+
+      it "uses the configured period when no days argument is given" do
+        old = RailsWebhookOutbox::Delivery.create!(subscription: subscription, event: "order.created", payload: { id: 1 }, status: :delivered)
+        old.update_column(:created_at, 31.days.ago)
+        recent = RailsWebhookOutbox::Delivery.create!(subscription: subscription, event: "order.created", payload: { id: 2 }, status: :delivered)
+        recent.update_column(:created_at, 10.days.ago)
+
+        out = invoke("webhook_outbox:cleanup")
+
+        expect(out).to include("Deleted 1 delivery older than 30 days")
+        expect(RailsWebhookOutbox::Delivery.exists?(recent.id)).to be true
+      end
+
+      it "lets an explicit days argument override the configured period" do
+        recent = RailsWebhookOutbox::Delivery.create!(subscription: subscription, event: "order.created", payload: { id: 1 }, status: :delivered)
+        recent.update_column(:created_at, 10.days.ago)
+
+        out = invoke("webhook_outbox:cleanup", "7")
+
+        expect(out).to include("Deleted 1 delivery older than 7 days")
+      end
+    end
+
     it "pluralizes the summary correctly for a single day and delivery" do
       old_delivered = RailsWebhookOutbox::Delivery.create!(subscription: subscription, event: "order.created", payload: { id: 1 })
       old_delivered.update!(status: :delivered)

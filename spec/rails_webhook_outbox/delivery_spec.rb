@@ -227,6 +227,54 @@ RSpec.describe RailsWebhookOutbox::Delivery do
     end
   end
 
+  describe ".prune" do
+    def create_aged(status:, age:)
+      record = described_class.create!(subscription: subscription, event: "order.created", payload: { id: 1 }, status: status)
+      record.update_column(:created_at, age.ago)
+      record
+    end
+
+    it "deletes delivered and failed deliveries older than the cutoff and returns the count" do
+      old_delivered = create_aged(status: :delivered, age: 10.days)
+      old_failed = create_aged(status: :failed, age: 10.days)
+
+      expect(described_class.prune(older_than: 7.days)).to eq(2)
+      expect(described_class.exists?(old_delivered.id)).to be false
+      expect(described_class.exists?(old_failed.id)).to be false
+    end
+
+    it "keeps recent deliveries and never deletes pending ones" do
+      recent = create_aged(status: :delivered, age: 1.day)
+      pending = create_aged(status: :pending, age: 10.days)
+
+      expect(described_class.prune(older_than: 7.days)).to eq(0)
+      expect(described_class.exists?(recent.id)).to be true
+      expect(described_class.exists?(pending.id)).to be true
+    end
+
+    it "removes the delivery attempts along with their deliveries" do
+      old = create_aged(status: :delivered, age: 10.days)
+      old.delivery_attempts.create!(attempt_number: 1, outcome: :delivered, duration_ms: 5)
+
+      expect { described_class.prune(older_than: 7.days) }
+        .to change(RailsWebhookOutbox::DeliveryAttempt, :count).by(-1)
+    end
+
+    it "deletes in batches until nothing old is left" do
+      5.times { create_aged(status: :delivered, age: 10.days) }
+      keeper = create_aged(status: :delivered, age: 1.day)
+
+      expect(described_class.prune(older_than: 7.days, batch_size: 2)).to eq(5)
+      expect(described_class.pluck(:id)).to eq([keeper.id])
+    end
+
+    it "handles a total that is an exact multiple of the batch size" do
+      4.times { create_aged(status: :failed, age: 10.days) }
+
+      expect(described_class.prune(older_than: 7.days, batch_size: 2)).to eq(4)
+    end
+  end
+
   describe "scopes" do
     before { delivery.save! }
 
