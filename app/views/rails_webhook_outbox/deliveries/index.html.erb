@@ -29,6 +29,10 @@
 
   <%= submit_tag "Filter", class: "rwo-btn" %>
   <%= link_to "Reset", deliveries_path, class: "rwo-btn-reset" %>
+  <%= link_to "Export CSV",
+        deliveries_path(request.query_parameters.slice("status", "event", "from", "to").to_h.symbolize_keys.merge(format: :csv)),
+        class: "rwo-btn-small",
+        title: "Newest #{number_with_delimiter(RailsWebhookOutbox::DeliveryExport::ROW_LIMIT)} deliveries matching the filters" %>
 <% end %>
 
 <%= turbo_stream_from "rails_webhook_outbox_deliveries" %>
