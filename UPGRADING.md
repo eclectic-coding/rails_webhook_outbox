@@ -5,12 +5,19 @@ release, see the [CHANGELOG](CHANGELOG.md).
 
 ## Upgrading to 0.5.0
 
-**Not breaking.** This release adds two indexes on the deliveries table, and nothing breaks if you
-skip them, but the dashboard and the stats endpoint stay slow on a large table until they exist.
+**Not breaking.** This release adds a column and two indexes on the deliveries table. Run the
+migrations: until the column exists, creating a delivery fails, and without the indexes the
+dashboard and the stats endpoint stay slow on a large table.
 
 ### What changed
 
-Two new migrations add indexes on `webhook_outbox_deliveries`:
+A new migration adds a nullable `payload_version` column to `webhook_outbox_deliveries`. Every
+webhook now carries a `version` key in its JSON body and an `X-Webhook-Version` header (`1` unless
+you configure `config.payload_versions`). Subscribers that ignore unknown keys and headers are
+unaffected. Deliveries created before the migration have no stored version and are sent as the
+default.
+
+Two more migrations add indexes on `webhook_outbox_deliveries`:
 
 - `delivered_at`: the latency figures on the dashboard overview filter and sort by it.
 - `created_at`: the deliveries list sorts by it, and the stats endpoint's success rate filters on
