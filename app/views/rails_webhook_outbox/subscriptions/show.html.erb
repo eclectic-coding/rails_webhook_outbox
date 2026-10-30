@@ -24,6 +24,10 @@
       <div class="rwo-detail-value"><%= @subscription.consecutive_failures %></div>
     </div>
     <div class="rwo-detail-item">
+      <div class="rwo-detail-label">Rate Limit</div>
+      <div class="rwo-detail-value"><%= @subscription.rate_limit_per_minute ? "#{@subscription.rate_limit_per_minute} / minute" : "Unlimited" %></div>
+    </div>
+    <div class="rwo-detail-item">
       <div class="rwo-detail-label">Description</div>
       <div class="rwo-detail-value"><%= @subscription.description.presence || "—" %></div>
     </div>

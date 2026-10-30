@@ -59,7 +59,7 @@ module RailsWebhookOutbox
     private
 
       def subscription_params
-        permitted = params.require(:subscription).permit(:url, :description, :active, events: [])
+        permitted = params.require(:subscription).permit(:url, :description, :active, :rate_limit_per_minute, events: [])
         raw_events = params[:subscription][:events]
 
         if raw_events.is_a?(String)

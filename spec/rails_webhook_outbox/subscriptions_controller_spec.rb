@@ -39,6 +39,17 @@ RSpec.describe "RailsWebhookOutbox::Subscriptions", type: :request do
       expect(response.body).to include("example.com/webhooks")
     end
 
+    it "shows an unlimited rate limit by default" do
+      get "/rails_webhook_outbox/subscriptions/#{subscription.id}"
+      expect(response.body).to match(%r{Rate Limit</div>\s*<div[^>]*>Unlimited</div>})
+    end
+
+    it "shows the configured rate limit" do
+      subscription.update!(rate_limit_per_minute: 30)
+      get "/rails_webhook_outbox/subscriptions/#{subscription.id}"
+      expect(response.body).to match(%r{Rate Limit</div>\s*<div[^>]*>30 / minute</div>})
+    end
+
     it "shows the masked secret alongside the full value for client-side reveal" do
       get "/rails_webhook_outbox/subscriptions/#{subscription.id}"
       expect(response.body).to include("••••••••#{subscription.secret.last(4)}")
@@ -63,6 +74,14 @@ RSpec.describe "RailsWebhookOutbox::Subscriptions", type: :request do
 
       expect(response).to redirect_to(%r{/rails_webhook_outbox/subscriptions/\d+})
       expect(RailsWebhookOutbox::Subscription.last.events).to eq(["order.created"])
+    end
+
+    it "creates a subscription with a rate limit" do
+      post "/rails_webhook_outbox/subscriptions", params: {
+        subscription: { url: "https://new.example.com/hooks", events: ["order.created"], rate_limit_per_minute: "10" }
+      }
+
+      expect(RailsWebhookOutbox::Subscription.last.rate_limit_per_minute).to eq(10)
     end
 
     it "creates a subscription with comma-separated string events" do
@@ -115,6 +134,32 @@ RSpec.describe "RailsWebhookOutbox::Subscriptions", type: :request do
       }
 
       expect(response).to have_http_status(422)
+    end
+
+    it "sets the rate limit" do
+      patch "/rails_webhook_outbox/subscriptions/#{subscription.id}", params: {
+        subscription: { rate_limit_per_minute: "30" }
+      }
+
+      expect(subscription.reload.rate_limit_per_minute).to eq(30)
+    end
+
+    it "clears the rate limit when the field is blank" do
+      subscription.update!(rate_limit_per_minute: 30)
+      patch "/rails_webhook_outbox/subscriptions/#{subscription.id}", params: {
+        subscription: { rate_limit_per_minute: "" }
+      }
+
+      expect(subscription.reload.rate_limit_per_minute).to be_nil
+    end
+
+    it "re-renders the form with a 422 for a rate limit of zero" do
+      patch "/rails_webhook_outbox/subscriptions/#{subscription.id}", params: {
+        subscription: { rate_limit_per_minute: "0" }
+      }
+
+      expect(response).to have_http_status(422)
+      expect(response.body).to include("must be greater than 0")
     end
   end
 

@@ -36,6 +36,11 @@
     <%= form.text_field :description, class: "rwo-input" %>
   </div>
 
+  <div class="rwo-field">
+    <%= form.label :rate_limit_per_minute, "Rate limit (deliveries per minute)" %>
+    <%= form.number_field :rate_limit_per_minute, class: "rwo-input", min: 1, step: 1, placeholder: "Unlimited" %>
+  </div>
+
   <% if subscription.persisted? %>
     <div class="rwo-field">
       <label class="rwo-checkbox-label">
