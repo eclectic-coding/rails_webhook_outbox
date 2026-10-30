@@ -144,6 +144,46 @@ RSpec.describe RailsWebhookOutbox::Configuration do
     end
   end
 
+  describe "payload versions" do
+    it "defaults to version 1 with no per-event versions" do
+      expect(config.default_payload_version).to eq(1)
+      expect(config.payload_versions).to eq({})
+    end
+
+    it "uses the default for events without an entry" do
+      expect(config.payload_version_for("order.created")).to eq(1)
+    end
+
+    it "uses the per-event version when configured, for string or symbol keys" do
+      config.payload_versions = { "order.created" => 2, "order.shipped": 3 }
+
+      expect(config.payload_version_for("order.created")).to eq(2)
+      expect(config.payload_version_for(:"order.shipped")).to eq(3)
+      expect(config.payload_version_for("order.updated")).to eq(1)
+    end
+
+    it "uses a configured default for events without an entry" do
+      config.default_payload_version = 4
+      config.payload_versions = { "order.created" => 2 }
+
+      expect(config.payload_version_for("order.updated")).to eq(4)
+    end
+
+    [0, -1, "1", 1.5, nil].each do |value|
+      it "rejects default_payload_version #{value.inspect}" do
+        expect { config.default_payload_version = value }
+          .to raise_error(ArgumentError, /default_payload_version must be a positive integer/)
+      end
+    end
+
+    [nil, "order.created", [["order.created", 2]], { "order.created" => 0 }, { "order.created" => "2" }].each do |value|
+      it "rejects payload_versions #{value.inspect}" do
+        expect { config.payload_versions = value }
+          .to raise_error(ArgumentError, /payload_versions must be a hash/)
+      end
+    end
+  end
+
   describe "#signing_algorithm=" do
     it "accepts valid algorithms" do
       %i[sha256 sha384 sha512].each do |algo|
