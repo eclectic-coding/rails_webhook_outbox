@@ -5,12 +5,17 @@ release, see the [CHANGELOG](CHANGELOG.md).
 
 ## Upgrading to 0.5.0
 
-**Not breaking.** This release adds two indexes on the deliveries table, and nothing breaks if you
-skip them, but the dashboard and the stats endpoint stay slow on a large table until they exist.
+**Not breaking.** This release adds a column to the subscriptions table and two indexes on the
+deliveries table. Run the migrations: until the column exists, `DeliveryJob` fails when it reads the
+subscription's rate limit, and without the indexes the dashboard and the stats endpoint stay slow
+on a large table.
 
 ### What changed
 
-Two new migrations add indexes on `webhook_outbox_deliveries`:
+A new migration adds a nullable `rate_limit_per_minute` column to `webhook_outbox_subscriptions`.
+`nil` means unlimited, so existing subscriptions behave exactly as before until you set a limit.
+
+Two more migrations add indexes on `webhook_outbox_deliveries`:
 
 - `delivered_at`: the latency figures on the dashboard overview filter and sort by it.
 - `created_at`: the deliveries list sorts by it, and the stats endpoint's success rate filters on

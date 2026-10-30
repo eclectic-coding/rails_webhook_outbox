@@ -120,6 +120,18 @@ Disable a subscription by setting `active: false`:
 sub.update!(active: false)
 ```
 
+### Rate limiting
+
+Set `rate_limit_per_minute` to cap how many delivery attempts a subscription gets in any rolling minute, so a burst of events can't overwhelm its endpoint. It must be a positive integer; `nil` (the default) means unlimited. You can also set it on the dashboard's subscription form.
+
+```ruby
+sub.update!(rate_limit_per_minute: 60)
+```
+
+Before each send, `DeliveryJob` counts the subscription's attempts from the last minute. At the limit, the job puts itself back on the queue to run once the oldest of those attempts leaves the window, instead of sending. A deferral is not an attempt: it doesn't increment `attempts`, record a `DeliveryAttempt`, or use up a retry. The delivery stays `pending` until it is sent.
+
+The count is read just before sending, so with several workers the limit is approximate: a few concurrent jobs can briefly overshoot it.
+
 [Back to top](#table-of-contents)
 
 ## Deliveries
