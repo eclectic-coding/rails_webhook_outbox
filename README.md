@@ -83,6 +83,8 @@ RailsWebhookOutbox.configure do |config|
   config.on_dead_letter = ->(delivery) { }  # called when a delivery exhausts all retries; defaults to nil
   config.latency_sample_size = 1000      # most recent deliveries used for the latency figures
   config.overview_cache_ttl = 30.seconds # cache the overview latency figures; nil (default) disables caching
+  config.default_payload_version = 1     # version sent for events with no entry in payload_versions
+  config.payload_versions = { "order.created" => 2 }  # per-event payload version; defaults to {}
 end
 ```
 
@@ -307,15 +309,19 @@ X-Webhook-Signature: sha256=a1b2c3d4...
 X-Webhook-Event: order.created
 X-Webhook-Delivery: 550e8400-e29b-41d4-a716-446655440000
 X-Webhook-Timestamp: 1719100800
+X-Webhook-Version: 2
 
 {
   "event": "order.created",
+  "version": 2,
   "delivered_at": "2026-06-26T10:00:00Z",
   "data": { "id": 42, "total": "99.00" }
 }
 ```
 
 `X-Webhook-Delivery` is the delivery's `idempotency_key` — a UUID generated once when the `Delivery` record is created and reused on every retry attempt. Subscribers can use this value to deduplicate incoming webhooks.
+
+`version` (also sent as `X-Webhook-Version`) is the payload version, so you can change an event's `data` shape without breaking subscribers that expect the old one. Set it per event with `config.payload_versions`; events without an entry use `config.default_payload_version` (default `1`). The version is global per event, not per subscription. It is stored on the `Delivery` when it is created, so retries send the version that was first queued even if you change the config in between, and the dashboard's delivery detail view shows it. Deliveries created before upgrading to 0.5.0 have no stored version and are sent with the default.
 
 Non-2xx responses raise `RailsWebhookOutbox::DeliveryError`, which carries `response_code` and `response_body` for logging and retry decisions.
 

@@ -34,6 +34,13 @@ RailsWebhookOutbox.configure do |config|
   # subscription is inactive. An error raised here is logged, never re-raised.
   # config.on_dead_letter = ->(delivery) { Sentry.capture_message("Webhook failed: #{delivery.event}") }
 
+  # Payload version sent with every webhook (a `version` key in the JSON body and an
+  # X-Webhook-Version header), so the payload shape can evolve without breaking subscribers.
+  # Set a version per event; events without an entry use default_payload_version. The version
+  # is stored on the delivery when it is created, so retries send what was first queued.
+  # config.default_payload_version = 1
+  # config.payload_versions = { "order.created" => 2 }
+
   # Dashboard latency figures (average and p95) use at most this many of the most
   # recent deliveries from the last 24 hours, so the cost stays bounded at any volume.
   # config.latency_sample_size = 1000

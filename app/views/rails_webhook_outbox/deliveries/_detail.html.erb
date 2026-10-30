@@ -26,6 +26,10 @@
       <div class="rwo-detail-value"><%= format_latency(delivery.latency) %></div>
     </div>
     <div class="rwo-detail-item">
+      <div class="rwo-detail-label">Payload Version</div>
+      <div class="rwo-detail-value"><%= delivery.payload_version || "—" %></div>
+    </div>
+    <div class="rwo-detail-item">
       <div class="rwo-detail-label">Next Retry At</div>
       <div class="rwo-detail-value"><%= delivery.next_retry_at&.strftime("%Y-%m-%d %H:%M:%S") || "—" %></div>
     </div>

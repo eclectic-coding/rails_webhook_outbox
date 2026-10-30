@@ -185,6 +185,18 @@ RSpec.describe "RailsWebhookOutbox::Deliveries", type: :request do
       expect(response.body).to include("Latency", "2.0 s")
     end
 
+    it "shows the payload version the delivery was queued with" do
+      delivery.update_columns(payload_version: 3)
+      get "/rails_webhook_outbox/deliveries/#{delivery.id}"
+      expect(response.body).to match(%r{Payload Version</div>\s*<div[^>]*>3</div>})
+    end
+
+    it "shows a dash for a delivery with no stored payload version" do
+      delivery.update_columns(payload_version: nil)
+      get "/rails_webhook_outbox/deliveries/#{delivery.id}"
+      expect(response.body).to match(%r{Payload Version</div>\s*<div[^>]*>—</div>})
+    end
+
     it "shows the retry button for a failed delivery" do
       delivery.update!(status: :failed)
       get "/rails_webhook_outbox/deliveries/#{delivery.id}"

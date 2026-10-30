@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_28_000002) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_30_000001) do
   create_table "orders", force: :cascade do |t|
     t.datetime "cancelled_at"
     t.datetime "created_at", null: false
@@ -28,6 +28,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_28_000002) do
     t.string "idempotency_key"
     t.datetime "next_retry_at"
     t.json "payload", null: false
+    t.integer "payload_version"
     t.text "response_body"
     t.integer "response_code"
     t.integer "status", default: 0, null: false

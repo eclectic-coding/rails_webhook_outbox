@@ -8,7 +8,7 @@ module RailsWebhookOutbox
                   :delivery_job_queue, :max_payload_size, :test_mode,
                   :secret_rotation_grace_period, :circuit_breaker_threshold,
                   :dashboard_enabled, :latency_sample_size, :overview_cache_ttl,
-                  :on_dead_letter, :retention_period
+                  :on_dead_letter, :retention_period, :payload_versions, :default_payload_version
 
     def initialize
       @events = []
@@ -27,6 +27,30 @@ module RailsWebhookOutbox
       @overview_cache_ttl = nil
       @on_dead_letter = nil
       @retention_period = nil
+      @payload_versions = {}
+      @default_payload_version = 1
+    end
+
+    # The payload version for an event: its entry in payload_versions, else the default.
+    def payload_version_for(event)
+      payload_versions.fetch(event.to_s, default_payload_version)
+    end
+
+    def default_payload_version=(value)
+      unless value.is_a?(Integer) && value.positive?
+        raise ArgumentError, "default_payload_version must be a positive integer"
+      end
+
+      @default_payload_version = value
+    end
+
+    # Keys may be strings or symbols; they are stored as strings to match event names.
+    def payload_versions=(value)
+      unless value.is_a?(Hash) && value.values.all? { |v| v.is_a?(Integer) && v.positive? }
+        raise ArgumentError, "payload_versions must be a hash of event name => positive integer version"
+      end
+
+      @payload_versions = value.transform_keys(&:to_s)
     end
 
     def signing_algorithm=(value)
