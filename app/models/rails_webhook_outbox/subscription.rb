@@ -13,6 +13,7 @@ module RailsWebhookOutbox
     validates :url, presence: true, format: { with: URL_FORMAT, message: "must be a valid HTTP or HTTPS URL" }
     validates :secret, presence: true
     validates :events, presence: true
+    validates :rate_limit_per_minute, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
 
     scope :active, -> { where(active: true) }
 

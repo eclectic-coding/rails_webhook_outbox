@@ -55,6 +55,26 @@ RSpec.describe RailsWebhookOutbox::Subscription do
       end
     end
 
+    context "rate_limit_per_minute" do
+      it "is unlimited (nil) by default" do
+        expect(subscription.rate_limit_per_minute).to be_nil
+        expect(subscription).to be_valid
+      end
+
+      it "accepts a positive integer" do
+        subscription.rate_limit_per_minute = 60
+        expect(subscription).to be_valid
+      end
+
+      [0, -1, 1.5].each do |value|
+        it "is invalid with #{value}" do
+          subscription.rate_limit_per_minute = value
+          expect(subscription).not_to be_valid
+          expect(subscription.errors[:rate_limit_per_minute]).to be_present
+        end
+      end
+    end
+
     context "events" do
       it "is invalid without events" do
         subscription.events = nil
