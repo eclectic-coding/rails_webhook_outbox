@@ -5,9 +5,10 @@ RSpec.describe RailsWebhookOutbox::Sender do
   let(:secret)          { "test-secret" }
   let(:idempotency_key) { "550e8400-e29b-41d4-a716-446655440000" }
   let(:subscription)    { double("Subscription", url: url, secret: secret, signing_secrets: [secret]) }
+  let(:payload_version) { 2 }
   let(:delivery) do
     double("Delivery", subscription: subscription, event: "order.created",
-      payload: { "id" => 1 }, idempotency_key: idempotency_key)
+      payload: { "id" => 1 }, idempotency_key: idempotency_key, payload_version: payload_version)
   end
 
   after { RailsWebhookOutbox.reset_configuration! }
@@ -66,6 +67,28 @@ RSpec.describe RailsWebhookOutbox::Sender do
             body["delivered_at"].is_a?(String) &&
             body["data"] == { "id" => 1 }
         }
+      end
+
+      it "sets X-Webhook-Version to the delivery's payload version" do
+        described_class.call(delivery)
+        expect(WebMock).to have_requested(:post, url)
+          .with(headers: { "X-Webhook-Version" => "2" })
+      end
+
+      it "includes the payload version in the JSON body" do
+        described_class.call(delivery)
+        expect(WebMock).to have_requested(:post, url).with { |req| JSON.parse(req.body)["version"] == 2 }
+      end
+
+      context "when the delivery has no stored version (queued before the column existed)" do
+        let(:payload_version) { nil }
+
+        it "falls back to the default version in the header and body" do
+          described_class.call(delivery)
+          expect(WebMock).to have_requested(:post, url).with { |req|
+            req.headers["X-Webhook-Version"] == "1" && JSON.parse(req.body)["version"] == 1
+          }
+        end
       end
 
       it "returns the HTTP response" do

@@ -75,6 +75,34 @@ RSpec.describe RailsWebhookOutbox::Delivery do
     end
   end
 
+  describe "payload version" do
+    after { RailsWebhookOutbox.reset_configuration! }
+
+    it "is stamped with the default version on create" do
+      delivery.save!
+      expect(delivery.payload_version).to eq(1)
+    end
+
+    it "is stamped with the event's configured version on create" do
+      RailsWebhookOutbox.configure { |c| c.payload_versions = { delivery.event => 2 } }
+      delivery.save!
+      expect(delivery.payload_version).to eq(2)
+    end
+
+    it "does not overwrite a version set explicitly" do
+      delivery.payload_version = 5
+      delivery.save!
+      expect(delivery.payload_version).to eq(5)
+    end
+
+    it "keeps the original version when the config changes before a retry" do
+      delivery.save!
+      RailsWebhookOutbox.configure { |c| c.payload_versions = { delivery.event => 3 } }
+      delivery.update!(attempts: 1)
+      expect(delivery.reload.payload_version).to eq(1)
+    end
+  end
+
   describe "status enum" do
     it "defaults to pending" do
       delivery.save!

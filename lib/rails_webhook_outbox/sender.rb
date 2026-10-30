@@ -25,9 +25,15 @@ module RailsWebhookOutbox
 
     private
 
+    # Deliveries queued before the column existed have none; they get the default.
+    def payload_version
+      @delivery.payload_version || RailsWebhookOutbox.config.default_payload_version
+    end
+
     def build_body
       JSON.generate(
         event: @delivery.event,
+        version: payload_version,
         delivered_at: Time.now.utc.iso8601,
         data: @delivery.payload
       )
@@ -39,6 +45,7 @@ module RailsWebhookOutbox
       req["X-Webhook-Signature"] = Signature.header_value(body, @delivery.subscription.signing_secrets)
       req["X-Webhook-Event"] = @delivery.event
       req["X-Webhook-Delivery"] = @delivery.idempotency_key
+      req["X-Webhook-Version"] = payload_version.to_s
       req["X-Webhook-Timestamp"] = Time.now.utc.to_i.to_s
       req.body = body
       req

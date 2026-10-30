@@ -11,6 +11,7 @@ module RailsWebhookOutbox
     enum :status, { pending: 0, delivered: 1, failed: 2 }
 
     before_validation :generate_idempotency_key, on: :create
+    before_validation :stamp_payload_version, on: :create
 
     validates :event, presence: true
     validates :payload, presence: true
@@ -82,6 +83,12 @@ module RailsWebhookOutbox
 
     def generate_idempotency_key
       self.idempotency_key ||= SecureRandom.uuid
+    end
+
+    # Fixed at creation so a retry sends the version first queued, even if the config
+    # changes in between.
+    def stamp_payload_version
+      self.payload_version ||= RailsWebhookOutbox.config.payload_version_for(event)
     end
 
     def broadcast_row_update
