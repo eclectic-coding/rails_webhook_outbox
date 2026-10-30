@@ -21,6 +21,13 @@ RSpec.describe "Database migrations" do
   end
 
   describe "webhook_outbox_deliveries" do
+    it "has a nullable payload_version column" do
+      column = ActiveRecord::Base.connection.columns(:webhook_outbox_deliveries).find { |c| c.name == "payload_version" }
+
+      expect(column.type).to eq(:integer)
+      expect(column.null).to be(true)
+    end
+
     it "indexes created_at for the list ordering and the stats window" do
       indexes = ActiveRecord::Base.connection.indexes(:webhook_outbox_deliveries)
 
