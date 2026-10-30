@@ -6,6 +6,9 @@ module RailsWebhookOutbox
     def perform(delivery)
       return skip_disabled_subscription(delivery) unless delivery.subscription.active?
 
+      wait = rate_limit_wait(delivery.subscription)
+      return defer_for_rate_limit(delivery, wait) if wait
+
       if RailsWebhookOutbox.config.test_mode
         record_attempt(delivery, outcome: :delivered, duration_ms: 0)
         delivery.update!(status: :delivered, attempts: delivery.attempts + 1, delivered_at: Time.current)
@@ -58,6 +61,35 @@ module RailsWebhookOutbox
     def skip_disabled_subscription(delivery)
       delivery.update!(status: :failed, next_retry_at: nil)
       Rails.logger.warn { "[RailsWebhookOutbox] skipped event=#{delivery.event} delivery_id=#{delivery.id} subscription_id=#{delivery.subscription_id} reason=subscription_inactive" }
+    end
+
+    RATE_LIMIT_WINDOW = 1.minute
+
+    # Seconds to wait before the subscription is under its limit again, or nil if it is
+    # now. Counts the subscription's recorded attempts in the last minute; the wait lasts
+    # until the oldest of them ages out. Under concurrent workers this is approximate: two
+    # can both see room for one more.
+    def rate_limit_wait(subscription)
+      limit = subscription.rate_limit_per_minute
+      return unless limit
+
+      window_start = RATE_LIMIT_WINDOW.ago
+      recent = DeliveryAttempt.joins(:delivery)
+        .where(webhook_outbox_deliveries: { subscription_id: subscription.id })
+        .where(created_at: window_start..)
+      return if recent.count < limit
+
+      oldest = recent.minimum(:created_at)
+      [(oldest + RATE_LIMIT_WINDOW - Time.current).ceil, 1].max
+    end
+
+    # A deferral is not an attempt: no DeliveryAttempt, no change to `attempts` or status.
+    # `executions` is rolled back too, because it counts toward max_retries and a rate
+    # limited run has used none of them. retry_job (not perform_later) keeps it across runs.
+    def defer_for_rate_limit(delivery, wait)
+      self.executions -= 1
+      Rails.logger.info { "[RailsWebhookOutbox] rate_limited event=#{delivery.event} delivery_id=#{delivery.id} subscription_id=#{delivery.subscription_id} retry_in=#{wait}s" }
+      retry_job(wait: wait)
     end
 
     def record_attempt(delivery, outcome:, duration_ms:, response_code: nil, response_body: nil)

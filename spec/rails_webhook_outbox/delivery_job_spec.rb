@@ -520,5 +520,94 @@ RSpec.describe RailsWebhookOutbox::DeliveryJob do
         expect(delivery.reload.response_body).to be_nil
       end
     end
+
+    context "with a rate limit" do
+      before { allow(RailsWebhookOutbox::Sender).to receive(:call).and_return(success_response) }
+
+      def record_attempts(count, for_subscription: subscription, at: Time.current)
+        count.times do |i|
+          past = RailsWebhookOutbox::Delivery.create!(subscription: for_subscription, event: "order.created", payload: { id: i })
+          past.delivery_attempts.create!(attempt_number: 1, outcome: :delivered, created_at: at)
+        end
+      end
+
+      context "under the limit" do
+        before { subscription.update!(rate_limit_per_minute: 3) }
+
+        it "sends" do
+          record_attempts(2)
+          described_class.perform_now(delivery)
+          expect(RailsWebhookOutbox::Sender).to have_received(:call).with(delivery)
+          expect(delivery.reload).to be_delivered
+        end
+      end
+
+      context "at the limit" do
+        before do
+          subscription.update!(rate_limit_per_minute: 2)
+          record_attempts(2, at: 20.seconds.ago)
+        end
+
+        it "does not send" do
+          described_class.perform_now(delivery)
+          expect(RailsWebhookOutbox::Sender).not_to have_received(:call)
+        end
+
+        it "re-enqueues itself until the oldest attempt leaves the window" do
+          expect { described_class.perform_now(delivery) }
+            .to have_enqueued_job(described_class).with(delivery)
+          expect(enqueued_jobs.last[:at]).to be_within(2).of(40.seconds.from_now.to_f)
+        end
+
+        it "does not count as an attempt" do
+          expect { described_class.perform_now(delivery) }
+            .not_to change { RailsWebhookOutbox::DeliveryAttempt.count }
+          delivery.reload
+          expect(delivery.attempts).to eq(0)
+          expect(delivery).to be_pending
+        end
+
+        it "does not use up a retry" do
+          job = described_class.new(delivery)
+          job.perform_now
+          expect(job.executions).to eq(0)
+        end
+
+        it "logs the deferral at info level" do
+          messages = []
+          allow(Rails.logger).to receive(:info) { |&blk| messages << blk&.call }
+          described_class.perform_now(delivery)
+          expect(messages.grep(/rate_limited/).first).to include("[RailsWebhookOutbox]", delivery.id.to_s, "retry_in=")
+        end
+      end
+
+      it "waits at least a second" do
+        subscription.update!(rate_limit_per_minute: 1)
+        record_attempts(1, at: 59.9.seconds.ago)
+        described_class.perform_now(delivery)
+        expect(enqueued_jobs.last[:at]).to be >= 1.second.from_now.to_f - 0.5
+      end
+
+      it "ignores attempts older than a minute" do
+        subscription.update!(rate_limit_per_minute: 1)
+        record_attempts(1, at: 2.minutes.ago)
+        described_class.perform_now(delivery)
+        expect(delivery.reload).to be_delivered
+      end
+
+      it "ignores other subscriptions' attempts" do
+        subscription.update!(rate_limit_per_minute: 1)
+        other = RailsWebhookOutbox::Subscription.create!(url: "https://other.example.com/hooks", events: ["order.created"])
+        record_attempts(5, for_subscription: other)
+        described_class.perform_now(delivery)
+        expect(delivery.reload).to be_delivered
+      end
+
+      it "is unlimited when the limit is nil" do
+        record_attempts(5)
+        described_class.perform_now(delivery)
+        expect(delivery.reload).to be_delivered
+      end
+    end
   end
 end
