@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_28_000002) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_30_000002) do
   create_table "orders", force: :cascade do |t|
     t.datetime "cancelled_at"
     t.datetime "created_at", null: false
@@ -62,6 +62,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_28_000002) do
     t.json "metadata", default: {}
     t.string "previous_secret"
     t.datetime "previous_secret_expires_at"
+    t.integer "rate_limit_per_minute"
     t.string "secret", null: false
     t.datetime "updated_at", null: false
     t.string "url", null: false

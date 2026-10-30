@@ -35,6 +35,13 @@ RSpec.describe "Database migrations" do
   end
 
   describe "webhook_outbox_subscriptions" do
+    it "has a nullable rate_limit_per_minute column (nil means unlimited)" do
+      column = ActiveRecord::Base.connection.columns(:webhook_outbox_subscriptions).find { |c| c.name == "rate_limit_per_minute" }
+
+      expect(column.type).to eq(:integer)
+      expect(column.null).to be(true)
+    end
+
     it "has the expected columns" do
       columns = ActiveRecord::Base.connection.columns(:webhook_outbox_subscriptions)
       column_names = columns.map(&:name)
